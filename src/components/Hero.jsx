@@ -23,7 +23,7 @@ export default function Hero() {
     >
       <div className="absolute inset-0 bg-gradient-to-b from-gedo-green/70 to-gedo-green/95"></div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -46,19 +46,19 @@ export default function Hero() {
           </div>
           <ScrollHint />
 
-          <h1 className="font-playfair text-3xl md:text-5xl text-white font-bold mb-4 max-w-3xl">
+          <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl text-white font-bold mb-4 max-w-4xl leading-tight">
             {lang === 'ro'
               ? site?.heroTitle_ro || site?.heroTitle || 'Bucătărie sudaneză și arabă autentică în București'
               : site?.heroTitle_en || site?.heroTitle || 'Authentic Sudanese & Arabic Cuisine in Bucharest'}
           </h1>
 
-          <p className="text-gedo-cream text-lg md:text-xl mb-10 max-w-2xl">
+          <p className="text-gedo-cream text-base sm:text-lg md:text-xl mb-10 max-w-2xl">
             {lang === 'ro'
               ? site?.heroSubtitle_ro || site?.heroSubtitle || 'Caldura mâncărurilor de acasă și arome bogate, de la Khartoum la Obor'
               : site?.heroSubtitle_en || site?.heroSubtitle || 'Home-cooked warmth and rich flavors from Khartoum to Obor'}
           </p>
 
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
+          <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 lg:space-x-6">
             <Link to="/menu" className="px-8 py-3 bg-white text-gedo-green font-medium rounded-full shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-1">
               <i className="fa-solid fa-utensils mr-2"></i> {t('hero.viewMenu')}
             </Link>

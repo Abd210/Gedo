@@ -42,7 +42,7 @@ export default function Header() {
         elevated ? 'bg-white/90 backdrop-blur shadow-lg' : 'bg-white/95'
       }`}
     >
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 md:py-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center">
           {site?.logoUrl ? (
@@ -61,7 +61,7 @@ export default function Header() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -99,10 +99,10 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile nav */}
+        {/* Mobile nav */}
       {mobileOpen && (
         <div className="md:hidden bg-white shadow-inner">
-          <div className="flex flex-col space-y-4 px-6 py-4">
+          <div className="flex flex-col space-y-4 px-4 sm:px-6 py-4">
             {navItems.map((item) => (
               <Link
                 key={item.path}

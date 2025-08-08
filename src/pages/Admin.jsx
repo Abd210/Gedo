@@ -120,17 +120,23 @@ export default function Admin() {
     }
   }
 
+  function getSavableSite(input) {
+    const { defaultLogoUrl, defaultHeroUrl, ...rest } = input || {};
+    return rest;
+  }
+
   async function saveSiteAll() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: BASIC_AUTH,
+        Authorization: basicToken,
       };
-      const res = await fetch('/api/site', { method: 'PUT', headers, body: JSON.stringify(site || {}) });
-      if (!res.ok) throw new Error('Failed to save');
+      const res = await fetch('/api/site', { method: 'PUT', headers, body: JSON.stringify(getSavableSite(site || {})) });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed to save');
       alert('Site settings saved');
     } catch (e) {
-      alert('Save failed');
+      alert(`Save failed: ${e.message}`);
     }
   }
 
@@ -579,9 +585,9 @@ export default function Admin() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   try {
-                    const up = await fetch('/api/upload', { method: 'POST', headers: { Authorization: BASIC_AUTH }, body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })() });
+                    const up = await fetch('/api/upload', { method: 'POST', headers: { Authorization: basicToken }, body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })() });
                     const { url } = await up.json();
-                    const res = await fetch('/api/gallery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: BASIC_AUTH }, body: JSON.stringify({ url }) });
+                    const res = await fetch('/api/gallery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: basicToken }, body: JSON.stringify({ url }) });
                     if (!res.ok) throw new Error('Failed');
                     fetchGallery();
                   } catch (err) {
@@ -597,7 +603,7 @@ export default function Admin() {
                 <img src={g.url} alt="gallery" className="w-full h-32 md:h-36 object-cover rounded" />
                 <button
                   className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gedo-red px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition"
-                  onClick={async () => { await fetch(`/api/gallery/${g.id}`, { method: 'DELETE', headers: { Authorization: BASIC_AUTH } }); fetchGallery(); }}
+                  onClick={async () => { await fetch(`/api/gallery/${g.id}`, { method: 'DELETE', headers: { Authorization: basicToken } }); fetchGallery(); }}
                 >
                   Delete
                 </button>

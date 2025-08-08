@@ -8,22 +8,22 @@ export default function Contact() {
   const { t } = useI18n();
   return (
     <motion.section
-      className="py-20 bg-gedo-cream"
+      className="py-16 md:py-20 bg-gedo-cream"
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="container mx-auto px-4 max-w-3xl text-center">
+      <div className="container mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
         <h1 className="font-playfair text-4xl text-gedo-green mb-6">{t('contact.title')}</h1>
 
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <h3 className="font-playfair text-xl text-gedo-green mb-2">{t('contact.callUs')}</h3>
           <a href={`tel:${site?.contactPhone || phone}`} className="text-gedo-gold text-lg hover:underline">
             {site?.contactPhone || phone}
           </a>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <h3 className="font-playfair text-xl text-gedo-green mb-2">{t('contact.visitUs')}</h3>
           <p className="text-gedo-brown">
             {site?.contactAddress || (

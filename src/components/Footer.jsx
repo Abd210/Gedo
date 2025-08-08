@@ -20,8 +20,8 @@ export default function Footer() {
         style={{ clipPath: 'polygon(0 0, 100% 0, 97% 100%, 3% 100%)' }}
       ></div>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {/* About */}
           <div>
             <div className="flex items-center mb-4">
@@ -91,7 +91,7 @@ export default function Footer() {
           {/* Location */}
           <div>
             <h3 className="font-playfair text-xl text-gedo-green mb-4">{t('footer.findUs')}</h3>
-          <div className="h-40 rounded-lg overflow-hidden">
+           <div className="h-48 md:h-40 rounded-lg overflow-hidden">
             <iframe
               title="map"
               src={site?.mapEmbedUrl || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2848.1495794762375!2d26.11831591553598!3d44.448180579102395!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40b1fff4c02a0a27%3A0x4b37b3303ef1d640!2sStrada%20Ion%20Maiorescu%2018%2C%20Bucure%C8%99ti%20030671!5e0!3m2!1sen!2sro!4v1691498320221!5m2!1sen!2sro'}
@@ -109,11 +109,21 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-200 mt-12 pt-6 text-center text-sm text-gedo-brown">
-          <p>© 2023 Gedo Restaurant. All rights reserved.</p>
+        <div className="border-t border-gray-200 mt-10 md:mt-12 pt-6 text-center text-xs sm:text-sm text-gedo-brown">
+          <p>© {new Date().getFullYear()} Gedo Restaurant. All rights reserved.</p>
           <div className="mt-2 space-x-4">
             <span className="hover:text-gedo-green transition cursor-pointer">Privacy Policy</span>
             <span className="hover:text-gedo-green transition cursor-pointer">Terms of Service</span>
+          </div>
+          <div className="mt-2">
+            <a
+              href="https://www.linkedin.com/in/abdalrahman-mahmoud-123261261/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gedo-green hover:text-gedo-gold transition cursor-pointer"
+            >
+              Created by abd210
+            </a>
           </div>
         </div>
       </div>
