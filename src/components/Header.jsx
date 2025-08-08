@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import DefaultLogo from '../assets/logo.svg';
 import useFetch from '../hooks/useFetch';
 import LanguageToggle from './LanguageToggle';
 import { useI18n } from '../i18n.jsx';
@@ -45,11 +46,11 @@ export default function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center">
           {site?.logoUrl ? (
-            <img src={site.logoUrl} alt="logo" className="w-12 h-12 rounded-full object-cover mr-3 shadow-card" />
+            <img src={site.logoUrl} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
+          ) : site?.defaultLogoUrl ? (
+            <img src={site.defaultLogoUrl} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
           ) : (
-            <div className="w-12 h-12 bg-gedo-green rounded-full flex items-center justify-center text-white mr-3">
-              <span className="font-playfair text-xl font-bold">G</span>
-            </div>
+            <img src={DefaultLogo} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
           )}
           <div>
             <h1 className="font-playfair text-gedo-green text-2xl font-bold">Gedo</h1>

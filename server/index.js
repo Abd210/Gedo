@@ -6,6 +6,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 // Initialise Firebase Admin SDK with robust env handling
 if (!admin.apps.length) {
@@ -91,12 +92,24 @@ app.use((req, _res, next) => {
 async function verifyAuth(req, res, next) {
   const header = req.headers.authorization || '';
 
-  // 1) Allow Basic auth using fixed credentials
+  // 1) Allow Basic auth using DB-stored credentials (with env fallback)
   const basic = header.match(/^Basic\s+(.*)$/i);
   if (basic) {
     try {
       const decoded = Buffer.from(basic[1], 'base64').toString('utf8');
       const [username, password] = decoded.split(':');
+      // Check Firestore settings first
+      const snap = await db.collection('site').doc('settings').get();
+      const settings = snap.exists ? snap.data() : {};
+      const adminAuth = settings?.adminAuth;
+      if (adminAuth && adminAuth.username && adminAuth.passwordHash) {
+        const providedHash = crypto.createHash('sha256').update(String(password)).digest('hex');
+        if (username === adminAuth.username && providedHash === adminAuth.passwordHash) {
+          req.user = { username };
+          return next();
+        }
+      }
+      // Fallback to env pair for compatibility
       const expectedUser = process.env.ADMIN_USERNAME || 'Gedo';
       const expectedPass = process.env.ADMIN_PASSWORD || 'Gedo1999';
       if (username === expectedUser && password === expectedPass) {
@@ -337,6 +350,9 @@ const defaultSiteSettings = {
     'Fondat de Chef Mahmoud „Gedo” Ibrahim în 2018, restaurantul nostru aduce în România aromele autentice ale Sudanului și Orientului Mijlociu.',
   logoUrl: null,
   heroBackgroundUrl: null,
+  // Defaults that point to Vite publicDir (served from /)
+  defaultLogoUrl: '/Gedo_Logo.png',
+  defaultHeroUrl: '/hero_img.webp',
   signatureDishIds: [],
   contactPhone: '+40 721 234 567',
   contactAddress: 'Str. Ion Maiorescu 18, Obor, Bucharest, Romania',
@@ -350,6 +366,10 @@ const defaultSiteSettings = {
   social: { facebook: '', instagram: '', tiktok: '' },
   tagline_en: 'Sudanese & Arabic Restaurant',
   tagline_ro: 'Restaurant sudanez și arab',
+  adminAuth: {
+    username: 'Gedo',
+    passwordHash: crypto.createHash('sha256').update('Gedo1999').digest('hex'),
+  },
   // About content (bilingual)
   aboutTitle_en: 'Our Story',
   aboutTitle_ro: 'Povestea noastră',
@@ -359,22 +379,41 @@ const defaultSiteSettings = {
     'Restaurantul Gedo a fost fondat de Chef Issam „Gedo” Mirghani în 1999, după ce a fugit de războiul civil din Sudan și și-a găsit o nouă casă la București. „Gedo” înseamnă bunic în arabă sudaneză, un omagiu adus bunicului care i-a transmis secretele bucătăriei de acasă.\n\nAscuns pe străduțele din spatele Pieței Obor, Gedo a devenit rapid un loc preferat de expați, comunități arabe și localnici dornici de a descoperi arome autentice la prețuri corecte. Meniul se schimbă zilnic în funcție de cele mai proaspete ingrediente și condimente aduse din Egipt, Siria și Liban, iar carnea este selectată local și pregătită în măcelăria noastră halal.\n\nFie că vii pentru emblematica Ciorbă de linte, Mulah Bamia gătită încet sau aromatul Lamb Mandi, vei fi mereu întâmpinat ca în familie – cu o cafea cu cardamom și povești calde.',
 };
 
-app.get('/api/site', async (_req, res) => {
+async function getSiteSettings() {
   try {
     const snap = await siteDocRef.get();
-    if (!snap.exists) return res.json(defaultSiteSettings);
+    if (!snap.exists) return { ...defaultSiteSettings };
     const data = snap.data() || {};
-    res.json({ ...defaultSiteSettings, ...data });
+    return { ...defaultSiteSettings, ...data };
   } catch (err) {
     console.error('GET /api/site error:', err);
-    res.json(defaultSiteSettings);
+    return { ...defaultSiteSettings };
   }
+}
+
+app.get('/api/site', async (_req, res) => {
+  const settings = await getSiteSettings();
+  const { adminAuth, ...publicSettings } = settings;
+  res.json(publicSettings);
 });
 
 app.put('/api/site', verifyAuth, async (req, res) => {
   try {
     const payload = req.body || {};
     await siteDocRef.set(payload, { merge: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Admin: update credentials
+app.put('/api/admin/credentials', verifyAuth, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+    const passwordHash = crypto.createHash('sha256').update(String(password)).digest('hex');
+    await siteDocRef.set({ adminAuth: { username: String(username), passwordHash } }, { merge: true });
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });

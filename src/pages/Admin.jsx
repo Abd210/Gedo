@@ -22,9 +22,8 @@ import DishForm from '../components/DishForm';
 import TestimonialForm from '../components/TestimonialForm';
 
 export default function Admin() {
-  const ADMIN_USER = 'Gedo';
-  const ADMIN_PASS = 'Gedo1999';
-  const BASIC_AUTH = `Basic ${btoa(`${ADMIN_USER}:${ADMIN_PASS}`)}`;
+  // Start with default; after login we keep a Basic token in memory
+  const [basicToken, setBasicToken] = useState(`Basic ${btoa(`Gedo:Gedo1999`)}`);
   const [user, setUser] = useState(null);
   const [dishes, setDishes] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
@@ -48,8 +47,8 @@ export default function Admin() {
     try {
       let res;
       if (col === 'testimonials') {
-        res = await fetch('/api/admin/testimonials', {
-          headers: { Authorization: BASIC_AUTH },
+         res = await fetch('/api/admin/testimonials', {
+           headers: { Authorization: basicToken },
         });
       } else {
         res = await fetch(`/api/${col}`);
@@ -67,7 +66,7 @@ export default function Admin() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: BASIC_AUTH,
+        Authorization: basicToken,
       };
       const res = await fetch(id ? `/api/${col}/${id}` : `/api/${col}`, {
         method: id ? 'PUT' : 'POST',
@@ -111,7 +110,7 @@ export default function Admin() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: BASIC_AUTH,
+        Authorization: basicToken,
       };
       const res = await fetch('/api/site', { method: 'PUT', headers, body: JSON.stringify(partial) });
       if (!res.ok) throw new Error('Failed to save');
@@ -143,7 +142,7 @@ export default function Admin() {
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { Authorization: BASIC_AUTH },
+        headers: { Authorization: basicToken },
         body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })(),
       });
       const data = await res.json();
@@ -161,7 +160,7 @@ export default function Admin() {
       await fetch(`/api/${col}/${id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: BASIC_AUTH,
+           Authorization: basicToken,
         },
       });
       if (col === 'dishes') setDishes((p) => p.filter((d) => d.id !== id));
@@ -176,12 +175,20 @@ export default function Admin() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
         <form
           className="space-y-4 w-full max-w-sm"
-          onSubmit={(e) => {
+            onSubmit={async (e) => {
             e.preventDefault();
-            const username = e.currentTarget.username.value;
-            const password = e.currentTarget.password.value;
-            if (username === ADMIN_USER && password === ADMIN_PASS) setUser({ username });
-            else alert('Invalid credentials');
+             const username = e.currentTarget.username.value;
+             const password = e.currentTarget.password.value;
+             // Build basic token and try a protected endpoint to validate
+             const token = `Basic ${btoa(`${username}:${password}`)}`;
+             try {
+               const ping = await fetch('/api/admin/testimonials', { headers: { Authorization: token } });
+               if (!ping.ok) throw new Error('Invalid credentials');
+               setBasicToken(token);
+               setUser({ username });
+             } catch (_) {
+               alert('Invalid credentials');
+             }
           }}
         >
           <input name="username" placeholder="Username" className="w-full border rounded px-3 py-2" required />
@@ -455,6 +462,34 @@ export default function Admin() {
                     <button className="px-4 py-2 bg-gedo-green text-white rounded" onClick={() => saveSite({ signatureDishIds: site?.signatureDishIds || [] })}>Save Signature Dishes</button>
                   </div>
                 </div>
+              </Collapsible>
+
+              <Collapsible title="Admin Access" description="Change the username and password used to sign in.">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input className="border rounded px-3 py-2" placeholder="New username" id="adm_u" />
+                  <input className="border rounded px-3 py-2" placeholder="New password" id="adm_p" type="password" />
+                </div>
+                <button
+                  className="mt-3 px-4 py-2 bg-gedo-green text-white rounded"
+                  onClick={async () => {
+                    const u = document.getElementById('adm_u').value.trim();
+                    const p = document.getElementById('adm_p').value.trim();
+                    if (!u || !p) { alert('Enter username and password'); return; }
+                    const res = await fetch('/api/admin/credentials', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json', Authorization: basicToken },
+                      body: JSON.stringify({ username: u, password: p }),
+                    });
+                    if (res.ok) {
+                      alert('Admin credentials updated. Please sign in again with the new credentials.');
+                      setUser(null);
+                    } else {
+                      alert('Update failed');
+                    }
+                  }}
+                >
+                  Save Admin Credentials
+                </button>
               </Collapsible>
 
               <Collapsible title="Contact & Hours" description="Phone, address, schedule, social links, Google Map.">

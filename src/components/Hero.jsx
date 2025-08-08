@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import useFetch from '../hooks/useFetch';
 import ScrollHint from './ScrollHint';
 import { useI18n } from '../i18n.jsx';
+import DefaultLogo from '../assets/logo.svg';
+import HeroDefault from '../assets/hero-default.jpg';
 
 export default function Hero() {
   const { data: site } = useFetch('/api/site');
@@ -13,7 +15,11 @@ export default function Hero() {
     <section
       id="hero"
       className="pt-28 md:pt-36 min-h-[70vh] relative overflow-hidden bg-gedo-green bg-opacity-95 bg-center"
-      style={site?.heroBackgroundUrl ? { backgroundImage: `url(${site.heroBackgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+      style={{
+        backgroundImage: `url(${site?.heroBackgroundUrl || site?.defaultHeroUrl || HeroDefault})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
     >
       <div className="absolute inset-0 bg-gradient-to-b from-gedo-green/70 to-gedo-green/95"></div>
 
@@ -34,9 +40,7 @@ export default function Hero() {
               {site?.logoUrl ? (
                 <img src={site.logoUrl} alt="logo" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-36 h-36 md:w-52 md:h-52 bg-gedo-green rounded-full flex items-center justify-center">
-                  <h2 className="font-playfair text-white text-5xl md:text-6xl font-bold italic">Gedo</h2>
-                </div>
+                <img src={DefaultLogo} alt="logo" className="w-36 h-36 md:w-52 md:h-52 object-contain" />
               )}
             </div>
           </div>
