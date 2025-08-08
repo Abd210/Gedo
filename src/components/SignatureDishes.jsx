@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import useFetch from '../hooks/useFetch';
 import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
+import { useI18n } from '../i18n.jsx';
 
 export default function SignatureDishes() {
+  const { t } = useI18n();
   const { data, loading, error } = useFetch('/api/dishes');
   const dishes = Array.isArray(data) ? data : [];
   const { data: site } = useFetch('/api/site');
@@ -24,9 +26,7 @@ export default function SignatureDishes() {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-14">
-          <h2 className="font-playfair text-3xl md:text-4xl text-gedo-green mb-3">
-            Our Signature Dishes
-          </h2>
+          <h2 className="font-playfair text-3xl md:text-4xl text-gedo-green mb-3">{t('signature.title')}</h2>
           <p className="text-gedo-brown max-w-2xl mx-auto">
             Explore our most beloved dishes, carefully crafted with authentic spices and traditional
             techniques
@@ -47,9 +47,7 @@ export default function SignatureDishes() {
         </div>
 
         <div className="text-center mt-12">
-          <Link to="/menu" className="inline-block px-8 py-3 bg-gedo-green text-white font-medium rounded-full shadow-md hover:shadow-lg transition duration-300">
-            View Full Menu
-          </Link>
+          <Link to="/menu" className="inline-block px-8 py-3 bg-gedo-green text-white font-medium rounded-full shadow-md hover:shadow-lg transition duration-300">{t('signature.viewFull')}</Link>
         </div>
       </div>
     </motion.section>

@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { phone } from '../data';
 import useFetch from '../hooks/useFetch';
+import { useI18n } from '../i18n.jsx';
 
 export default function Contact() {
   const { data: site } = useFetch('/api/site');
+  const { t } = useI18n();
   return (
     <motion.section
       className="py-20 bg-gedo-cream"
@@ -12,17 +14,17 @@ export default function Contact() {
       transition={{ duration: 0.6 }}
     >
       <div className="container mx-auto px-4 max-w-3xl text-center">
-        <h1 className="font-playfair text-4xl text-gedo-green mb-6">Get in Touch</h1>
+        <h1 className="font-playfair text-4xl text-gedo-green mb-6">{t('contact.title')}</h1>
 
         <div className="mb-8">
-          <h3 className="font-playfair text-xl text-gedo-green mb-2">Call Us</h3>
+          <h3 className="font-playfair text-xl text-gedo-green mb-2">{t('contact.callUs')}</h3>
           <a href={`tel:${site?.contactPhone || phone}`} className="text-gedo-gold text-lg hover:underline">
             {site?.contactPhone || phone}
           </a>
         </div>
 
         <div className="mb-8">
-          <h3 className="font-playfair text-xl text-gedo-green mb-2">Visit Us</h3>
+          <h3 className="font-playfair text-xl text-gedo-green mb-2">{t('contact.visitUs')}</h3>
           <p className="text-gedo-brown">
             {site?.contactAddress || (
               <>

@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
+import { useI18n } from '../i18n.jsx';
 
 export default function DishCard({ dish = {} }) {
+  const { t } = useI18n();
   return (
     <motion.div
       id={`dish-${dish.id}`}
@@ -24,7 +26,7 @@ export default function DishCard({ dish = {} }) {
           )}
           <a href="#reserve" className="text-gedo-green hover:text-gedo-gold transition transform hover:-translate-y-0.5 flex items-center gap-1">
             <i className="fa-solid fa-phone"></i>
-            <span className="text-sm">Call to Order</span>
+            <span className="text-sm">{t('misc.callToOrder')}</span>
           </a>
         </div>
       </div>

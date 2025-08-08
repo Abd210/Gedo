@@ -1,4 +1,23 @@
 import { useEffect, useState } from 'react';
+function Collapsible({ title, description, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border rounded">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div>
+          <div className="font-semibold">{title}</div>
+          {description ? <div className="text-xs text-gedo-brown">{description}</div> : null}
+        </div>
+        <i className={`fa-solid ${open ? 'fa-chevron-up' : 'fa-chevron-down'} text-gedo-green`}></i>
+      </button>
+      {open ? <div className="px-4 pb-4">{children}</div> : null}
+    </div>
+  );
+}
 import DishForm from '../components/DishForm';
 import TestimonialForm from '../components/TestimonialForm';
 
@@ -12,13 +31,16 @@ export default function Admin() {
   const [loading, setLoading] = useState(false);
   const [formState, setFormState] = useState({ show: false, editing: null, type: 'dish' });
   const [section, setSection] = useState('dishes'); // 'dishes' | 'testimonials'
+  const [gallery, setGallery] = useState([]);
   const [site, setSite] = useState(null);
+  const [settingsLang, setSettingsLang] = useState('en');
 
   useEffect(() => {
     if (user) {
       fetchCollection('dishes');
       fetchCollection('testimonials');
       fetchSite();
+      fetchGallery();
     }
   }, [user]);
 
@@ -71,6 +93,15 @@ export default function Admin() {
       const res = await fetch('/api/site');
       const data = await res.json();
       setSite(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function fetchGallery() {
+    try {
+      const res = await fetch('/api/gallery');
+      setGallery(await res.json());
     } catch (e) {
       console.error(e);
     }
@@ -203,6 +234,12 @@ export default function Admin() {
         >
           Site Settings
         </button>
+        <button
+          className={`px-4 py-2 rounded ${section === 'gallery' ? 'bg-gedo-green text-white' : 'bg-gray-200'}`}
+          onClick={() => setSection('gallery')}
+        >
+          Gallery
+        </button>
       </div>
 
       {loading ? (
@@ -278,194 +315,259 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
-      ) : (
-        <div className="max-w-4xl space-y-8">
-          <div className="flex items-center justify-between">
+      ) : section === 'site' ? (
+        <div className="max-w-4xl space-y-6">
+          <div className="flex items-center justify-between sticky top-20 bg-white/95 backdrop-blur z-10 py-2 border-b">
             <h2 className="text-xl font-semibold">Site Settings</h2>
             <div className="space-x-2">
               <button className="px-4 py-2 bg-gray-200 rounded" onClick={revertSiteChanges}>Revert</button>
               <button className="px-4 py-2 bg-gedo-green text-white rounded" onClick={saveSiteAll}>Save Changes</button>
             </div>
           </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm mb-1">Logo</label>
-                    {site?.logoUrl ? (
-                      <div className="flex items-center gap-3 mb-2">
-                        <img src={site.logoUrl} alt="logo" className="h-12 w-12 object-cover rounded" />
-                        <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), logoUrl: null }))}>Remove</button>
-                      </div>
-                    ) : null}
-                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadSiteImage(e.target.files[0], 'logoUrl')} />
-                    <p className="text-xs text-gedo-brown mt-1">Upload your restaurant logo to replace the default "G" badge.</p>
-                  </div>
-              <div>
-                <label className="block text-sm mb-1">Today's Special</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={site?.todaysSpecialDishId || ''}
-                  onChange={(e) => setSite((p) => ({ ...(p || {}), todaysSpecialDishId: e.target.value || null }))}
-                >
-                  <option value="">— None —</option>
-                  {dishes.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gedo-brown mt-1">Pick one of your dishes to feature on the homepage.</p>
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Signature Dishes (showcase)</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {(site?.signatureDishIds || []).map((id) => {
-                    const d = dishes.find((x) => x.id === id);
-                    if (!d) return null;
-                    return (
-                      <span key={id} className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center gap-2">
-                        {d.name}
-                        <button className="text-gedo-red" onClick={() => setSite((p) => ({ ...(p || {}), signatureDishIds: (p?.signatureDishIds || []).filter((x) => x !== id) }))}>
-                          ×
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    if (!id) return;
-                    setSite((p) => ({ ...(p || {}), signatureDishIds: Array.from(new Set([ ...(p?.signatureDishIds || []), id ])) }));
-                  }}
-                >
-                  <option value="">+ Add dish</option>
-                  {dishes.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gedo-brown mt-1">Choose multiple dishes to highlight in the Signature section.</p>
-                <div className="mt-2">
-                  <button className="px-4 py-2 bg-gedo-green text-white rounded" onClick={() => saveSite({ signatureDishIds: site?.signatureDishIds || [] })}>Save Signature Dishes</button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Hero Title</label>
-                <input className="w-full border rounded px-3 py-2" placeholder="Large title at the top of Home" value={site?.heroTitle || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), heroTitle: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Hero Subtitle</label>
-                <input className="w-full border rounded px-3 py-2" placeholder="Short supporting line under the title" value={site?.heroSubtitle || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), heroSubtitle: e.target.value }))} />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Welcome Title</label>
-                <input className="w-full border rounded px-3 py-2" value={site?.welcomeTitle || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), welcomeTitle: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Welcome Text</label>
-                <textarea className="w-full border rounded px-3 py-2" rows={3} value={site?.welcomeText || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), welcomeText: e.target.value }))} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Collapsible title="Branding" description="Logo and tagline shown in navbar and hero badge.">
                 <div>
-                  <label className="block text-sm mb-1">Phone</label>
-                  <input className="w-full border rounded px-3 py-2" placeholder="Display phone number" value={site?.contactPhone || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), contactPhone: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Address</label>
-                  <input className="w-full border rounded px-3 py-2" placeholder="Street, City, Country" value={site?.contactAddress || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), contactAddress: e.target.value }))} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm mb-2">Opening Hours</label>
-                <div className="space-y-2">
-                  {(site?.openingHours || []).map((h, idx) => (
-                    <div key={idx} className="flex flex-wrap gap-2 items-center">
-                      <select
-                        className="border rounded px-3 py-2"
-                        value={h.label}
-                        onChange={(e) => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).map((x, i) => i === idx ? { ...x, label: e.target.value } : x) }))}
-                      >
-                        {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Monday - Thursday','Friday - Saturday'].map((d) => (
-                          <option key={d} value={d}>{d}</option>
-                        ))}
-                      </select>
-                      <input type="time" className="border rounded px-3 py-2" value={(h.value || '').split(' - ')[0] || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).map((x, i) => i === idx ? { ...x, value: `${e.target.value} - ${(x.value || '').split(' - ')[1] || ''}` } : x) }))} />
-                      <span>to</span>
-                      <input type="time" className="border rounded px-3 py-2" value={(h.value || '').split(' - ')[1] || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).map((x, i) => i === idx ? { ...x, value: `${(x.value || '').split(' - ')[0] || ''} - ${e.target.value}` } : x) }))} />
-                      <button className="px-3 py-2 bg-gedo-red text-white rounded" onClick={() => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).filter((_, i) => i !== idx) }))}>Remove</button>
+                  <label className="block text-sm mb-1">Logo</label>
+                  {site?.logoUrl ? (
+                    <div className="flex items-center gap-3 mb-2">
+                      <img src={site.logoUrl} alt="logo" className="h-12 w-12 object-cover rounded" />
+                      <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), logoUrl: null }))}>Remove</button>
                     </div>
-                  ))}
-                  <div className="space-x-2">
-                    <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), openingHours: [ ...(p?.openingHours || []), { label: 'Monday - Thursday', value: '11:00 - 22:00' } ] }))}>+ Add Row</button>
-                    <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), openingHours: [
-                      { label: 'Monday - Thursday', value: '11:00 - 22:00' },
-                      { label: 'Friday - Saturday', value: '11:00 - 23:00' },
-                      { label: 'Sunday', value: '12:00 - 21:00' },
-                    ] }))}>Use Defaults</button>
+                  ) : null}
+                  <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadSiteImage(e.target.files[0], 'logoUrl')} />
+                  <p className="text-xs text-gedo-brown mt-1">Upload your restaurant logo to replace the default "G" badge.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-2 mt-2">
+                  <label className="block text-sm mb-1">Tagline (EN)</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="Short line under logo (English)" value={site?.tagline_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), tagline_en: e.target.value }))} />
+                  <label className="block text-sm mb-1 mt-2">Slogan (RO)</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="Text scurt sub logo (Română)" value={site?.tagline_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), tagline_ro: e.target.value }))} />
+                </div>
+              </Collapsible>
+
+              <Collapsible title="Hero (Homepage)" description="Large headline and subtitle in the top section.">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs px-2 py-1 rounded ${settingsLang==='en'?'bg-gedo-green text-white':'bg-gray-200'}`} onClick={()=>setSettingsLang('en')}>EN</span>
+                  <span className={`text-xs px-2 py-1 rounded ${settingsLang==='ro'?'bg-gedo-green text-white':'bg-gray-200'}`} onClick={()=>setSettingsLang('ro')}>RO</span>
+                </div>
+                {settingsLang==='en' ? (
+                  <>
+                    <label className="block text-xs mb-1">Hero Title (EN)</label>
+                    <input className="w-full border rounded px-3 py-2" value={site?.heroTitle_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), heroTitle_en: e.target.value }))} />
+                    <label className="block text-xs mb-1 mt-2">Hero Subtitle (EN)</label>
+                    <input className="w-full border rounded px-3 py-2" value={site?.heroSubtitle_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), heroSubtitle_en: e.target.value }))} />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-xs mb-1">Titlu Hero (RO)</label>
+                    <input className="w-full border rounded px-3 py-2" value={site?.heroTitle_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), heroTitle_ro: e.target.value }))} />
+                    <label className="block text-xs mb-1 mt-2">Subtitlu Hero (RO)</label>
+                    <input className="w-full border rounded px-3 py-2" value={site?.heroSubtitle_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), heroSubtitle_ro: e.target.value }))} />
+                  </>
+                )}
+              </Collapsible>
+
+              <Collapsible title="Welcome Section" description="Title and intro paragraph on the homepage.">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs px-2 py-1 rounded ${settingsLang==='en'?'bg-gedo-green text-white':'bg-gray-200'}`} onClick={()=>setSettingsLang('en')}>EN</span>
+                  <span className={`text-xs px-2 py-1 rounded ${settingsLang==='ro'?'bg-gedo-green text-white':'bg-gray-200'}`} onClick={()=>setSettingsLang('ro')}>RO</span>
+                </div>
+                {settingsLang==='en' ? (
+                  <>
+                    <label className="block text-xs mb-1">Welcome Title (EN)</label>
+                    <input className="w-full border rounded px-3 py-2" value={site?.welcomeTitle_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), welcomeTitle_en: e.target.value }))} />
+                    <label className="block text-xs mb-1 mt-2">Welcome Text (EN)</label>
+                    <textarea className="w-full border rounded px-3 py-2" rows={3} value={site?.welcomeText_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), welcomeText_en: e.target.value }))} />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-xs mb-1">Titlu Bun Venit (RO)</label>
+                    <input className="w-full border rounded px-3 py-2" value={site?.welcomeTitle_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), welcomeTitle_ro: e.target.value }))} />
+                    <label className="block text-xs mb-1 mt-2">Text Bun Venit (RO)</label>
+                    <textarea className="w-full border rounded px-3 py-2" rows={3} value={site?.welcomeText_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), welcomeText_ro: e.target.value }))} />
+                  </>
+                )}
+              </Collapsible>
+            </div>
+
+            <div className="space-y-4">
+              <Collapsible title="About Page" description="Content for the About page (both languages).">
+                <div className="grid grid-cols-1 gap-3">
+                  <label className="block text-xs mb-1">About Title (EN)</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="About title (English)" value={site?.aboutTitle_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), aboutTitle_en: e.target.value }))} />
+                  <label className="block text-xs mb-1">About Body (EN)</label>
+                  <textarea className="w-full border rounded px-3 py-2" rows={6} placeholder="About body (English)" value={site?.aboutBody_en || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), aboutBody_en: e.target.value }))} />
+                  <label className="block text-xs mb-1">Titlu Despre (RO)</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="Titlu Despre (Română)" value={site?.aboutTitle_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), aboutTitle_ro: e.target.value }))} />
+                  <label className="block text-xs mb-1">Conținut Despre (RO)</label>
+                  <textarea className="w-full border rounded px-3 py-2" rows={6} placeholder="Conținut Despre (Română)" value={site?.aboutBody_ro || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), aboutBody_ro: e.target.value }))} />
+                </div>
+              </Collapsible>
+
+              <Collapsible title="Homepage Dishes" description="Choose special and signature dishes.">
+                <div className="mb-3">
+                  <label className="block text-sm mb-1">Today's Special</label>
+                  <select
+                    className="w-full border rounded px-3 py-2"
+                    value={site?.todaysSpecialDishId || ''}
+                    onChange={(e) => setSite((p) => ({ ...(p || {}), todaysSpecialDishId: e.target.value || null }))}
+                  >
+                    <option value="">— None —</option>
+                    {dishes.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gedo-brown mt-1">Pick one of your dishes to feature on the homepage.</p>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Signature Dishes (showcase)</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(site?.signatureDishIds || []).map((id) => {
+                      const d = dishes.find((x) => x.id === id);
+                      if (!d) return null;
+                      return (
+                        <span key={id} className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center gap-2">
+                          {d.name}
+                          <button className="text-gedo-red" onClick={() => setSite((p) => ({ ...(p || {}), signatureDishIds: (p?.signatureDishIds || []).filter((x) => x !== id) }))}>
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <select
+                    className="w-full border rounded px-3 py-2"
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      if (!id) return;
+                      setSite((p) => ({ ...(p || {}), signatureDishIds: Array.from(new Set([ ...(p?.signatureDishIds || []), id ])) }));
+                    }}
+                  >
+                    <option value="">+ Add dish</option>
+                    {dishes.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  <div className="mt-2">
+                    <button className="px-4 py-2 bg-gedo-green text-white rounded" onClick={() => saveSite({ signatureDishIds: site?.signatureDishIds || [] })}>Save Signature Dishes</button>
                   </div>
                 </div>
-              </div>
+              </Collapsible>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Facebook</label>
-                  <input className="w-full border rounded px-3 py-2" placeholder="https://facebook.com/yourpage" value={site?.social?.facebook || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), social: { ...(p?.social || {}), facebook: e.target.value } }))} />
+              <Collapsible title="Contact & Hours" description="Phone, address, schedule, social links, Google Map.">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">Phone</label>
+                    <input className="w-full border rounded px-3 py-2" placeholder="Display phone number" value={site?.contactPhone || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), contactPhone: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Address</label>
+                    <input className="w-full border rounded px-3 py-2" placeholder="Street, City, Country" value={site?.contactAddress || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), contactAddress: e.target.value }))} />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">Instagram</label>
-                  <input className="w-full border rounded px-3 py-2" placeholder="https://instagram.com/yourhandle" value={site?.social?.instagram || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), social: { ...(p?.social || {}), instagram: e.target.value } }))} />
+                <div className="mt-3">
+                  <label className="block text-sm mb-2">Opening Hours</label>
+                  <div className="space-y-2">
+                    {(site?.openingHours || []).map((h, idx) => (
+                      <div key={idx} className="flex flex-wrap gap-2 items-center">
+                        <select
+                          className="border rounded px-3 py-2"
+                          value={h.label}
+                          onChange={(e) => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).map((x, i) => i === idx ? { ...x, label: e.target.value } : x) }))}
+                        >
+                          {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Monday - Thursday','Friday - Saturday'].map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                        <input type="time" className="border rounded px-3 py-2" value={(h.value || '').split(' - ')[0] || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).map((x, i) => i === idx ? { ...x, value: `${e.target.value} - ${(x.value || '').split(' - ')[1] || ''}` } : x) }))} />
+                        <span>to</span>
+                        <input type="time" className="border rounded px-3 py-2" value={(h.value || '').split(' - ')[1] || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).map((x, i) => i === idx ? { ...x, value: `${(x.value || '').split(' - ')[0] || ''} - ${e.target.value}` } : x) }))} />
+                        <button className="px-3 py-2 bg-gedo-red text-white rounded" onClick={() => setSite((p) => ({ ...(p || {}), openingHours: (p?.openingHours || []).filter((_, i) => i !== idx) }))}>Remove</button>
+                      </div>
+                    ))}
+                    <div className="space-x-2">
+                      <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), openingHours: [ ...(p?.openingHours || []), { label: 'Monday - Thursday', value: '11:00 - 22:00' } ] }))}>+ Add Row</button>
+                      <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), openingHours: [
+                        { label: 'Monday - Thursday', value: '11:00 - 22:00' },
+                        { label: 'Friday - Saturday', value: '11:00 - 23:00' },
+                        { label: 'Sunday', value: '12:00 - 21:00' },
+                      ] }))}>Use Defaults</button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">TikTok</label>
-                  <input className="w-full border rounded px-3 py-2" placeholder="https://tiktok.com/@yourhandle" value={site?.social?.tiktok || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), social: { ...(p?.social || {}), tiktok: e.target.value } }))} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                  <div>
+                    <label className="block text-sm mb-1">Facebook</label>
+                    <input className="w-full border rounded px-3 py-2" placeholder="https://facebook.com/yourpage" value={site?.social?.facebook || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), social: { ...(p?.social || {}), facebook: e.target.value } }))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Instagram</label>
+                    <input className="w-full border rounded px-3 py-2" placeholder="https://instagram.com/yourhandle" value={site?.social?.instagram || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), social: { ...(p?.social || {}), instagram: e.target.value } }))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">TikTok</label>
+                    <input className="w-full border rounded px-3 py-2" placeholder="https://tiktok.com/@yourhandle" value={site?.social?.tiktok || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), social: { ...(p?.social || {}), tiktok: e.target.value } }))} />
+                  </div>
                 </div>
-              </div>
+                <div className="mt-3">
+                  <label className="block text-sm mb-1">Google Map Embed URL</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="Paste Google Maps embed URL" value={site?.mapEmbedUrl || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), mapEmbedUrl: e.target.value }))} />
+                </div>
+              </Collapsible>
 
-              <div>
-                <label className="block text-sm mb-1">Google Map Embed URL</label>
-                <input className="w-full border rounded px-3 py-2" placeholder="Paste Google Maps embed URL" value={site?.mapEmbedUrl || ''} onChange={(e) => setSite((p) => ({ ...(p || {}), mapEmbedUrl: e.target.value }))} />
-              </div>
+              <Collapsible title="Hero Background" description="Large cover image behind the hero content.">
+                {site?.heroBackgroundUrl ? (
+                  <div className="mb-2">
+                    <img src={site.heroBackgroundUrl} alt="hero" className="h-20 w-full object-cover rounded" />
+                  </div>
+                ) : null}
+                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadSiteImage(e.target.files[0], 'heroBackgroundUrl')} />
+                <p className="text-xs text-gedo-brown mt-1">Recommended 1920×1080 or larger.</p>
+              </Collapsible>
             </div>
-
-            <div className="space-y-6">
-              <div className="p-4 border rounded">
-                <div className="text-xs text-gedo-brown mb-2">Hero Preview</div>
-                <div className="bg-gedo-green text-white p-4 rounded">
-                  <div className="text-xl font-playfair">{site?.heroTitle || 'Title'}</div>
-                  <div className="opacity-80">{site?.heroSubtitle || 'Subtitle'}</div>
-                </div>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-3xl space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Gallery</h2>
+            <label className="px-4 py-2 bg-gedo-green text-white rounded cursor-pointer">
+              + Upload
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const up = await fetch('/api/upload', { method: 'POST', headers: { Authorization: BASIC_AUTH }, body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })() });
+                    const { url } = await up.json();
+                    const res = await fetch('/api/gallery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: BASIC_AUTH }, body: JSON.stringify({ url }) });
+                    if (!res.ok) throw new Error('Failed');
+                    fetchGallery();
+                  } catch (err) {
+                    alert('Upload failed');
+                  }
+                }}
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {gallery.map((g) => (
+              <div key={g.id} className="relative group">
+                <img src={g.url} alt="gallery" className="w-full h-32 md:h-36 object-cover rounded" />
+                <button
+                  className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gedo-red px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition"
+                  onClick={async () => { await fetch(`/api/gallery/${g.id}`, { method: 'DELETE', headers: { Authorization: BASIC_AUTH } }); fetchGallery(); }}
+                >
+                  Delete
+                </button>
               </div>
-              <div className="p-4 border rounded">
-                <div className="text-xs text-gedo-brown mb-2">Welcome Preview</div>
-                <div>
-                  <div className="font-semibold">{site?.welcomeTitle || 'Welcome Title'}</div>
-                  <div className="text-sm text-gedo-brown">{site?.welcomeText || 'Welcome text...'}</div>
-                </div>
-              </div>
-              <div className="p-4 border rounded">
-                <div className="text-xs text-gedo-brown mb-2">Opening Hours Preview</div>
-                <div className="space-y-1 text-sm">
-                  {(site?.openingHours || []).map((h, i) => (
-                    <div key={i} className="flex justify-between"><span>{h.label}</span><span>{h.value}</span></div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-4 border rounded">
-                <div className="text-xs text-gedo-brown mb-2">Map Preview</div>
-                {site?.mapEmbedUrl ? (
-                  <iframe title="map" src={site.mapEmbedUrl} className="w-full h-48 border" allowFullScreen="" loading="lazy"></iframe>
-                ) : (
-                  <div className="text-sm text-gedo-brown">Paste an embed URL to preview the map here.</div>
-                )}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}

@@ -1,10 +1,12 @@
 import DishCard from '../components/DishCard';
 import { motion } from 'framer-motion';
 import useFetch from '../hooks/useFetch';
+import { useI18n } from '../i18n.jsx';
 
 export default function Menu() {
   const { data, loading, error } = useFetch('/api/dishes');
   const dishes = Array.isArray(data) ? data : [];
+  const { t } = useI18n();
 
   return (
     <motion.section
@@ -15,9 +17,9 @@ export default function Menu() {
     >
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="font-playfair text-4xl text-gedo-green mb-4">Full Menu</h1>
+          <h1 className="font-playfair text-4xl text-gedo-green mb-4">{t('signature.viewFull')}</h1>
           <p className="text-gedo-brown max-w-2xl mx-auto">
-            Traditional Sudanese & Arabic favourites crafted daily from the freshest ingredients.
+            {t('misc.todaysSpecial')}
           </p>
         </div>
 

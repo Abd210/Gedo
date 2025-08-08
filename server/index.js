@@ -178,6 +178,7 @@ app.delete('/api/dishes/:id', verifyAuth, async (req, res) => {
 
 // CRUD routes for testimonials
 const testimonialsCol = db.collection('testimonials');
+const galleryCol = db.collection('gallery');
 
 // Disk storage preserving file extensions
 const storage = multer.diskStorage({
@@ -238,6 +239,38 @@ app.delete('/api/testimonials/:id', verifyAuth, async (req, res) => {
   }
 });
 
+// ---- Gallery endpoints ----
+app.get('/api/gallery', async (_req, res) => {
+  try {
+    const snap = await galleryCol.orderBy('createdAt', 'desc').get();
+    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    res.json(data);
+  } catch (err) {
+    console.error('GET /api/gallery error:', err);
+    res.json([]);
+  }
+});
+
+app.post('/api/gallery', verifyAuth, async (req, res) => {
+  try {
+    const { url, caption } = req.body || {};
+    if (!url) return res.status(400).json({ error: 'Missing url' });
+    const doc = await galleryCol.add({ url, caption: caption || '', createdAt: Date.now() });
+    res.json({ id: doc.id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/gallery/:id', verifyAuth, async (req, res) => {
+  try {
+    await galleryCol.doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Admin-only list of testimonials (all, including unapproved)
 app.get('/api/admin/testimonials', verifyAuth, async (_req, res) => {
   try {
@@ -289,10 +322,21 @@ const defaultSiteSettings = {
   todaysSpecialDishId: null,
   heroTitle: 'Authentic Sudanese & Arabic Cuisine in Bucharest',
   heroSubtitle: 'Home-cooked warmth and rich flavors from Khartoum to Obor',
+  heroTitle_en: 'Authentic Sudanese & Arabic Cuisine in Bucharest',
+  heroSubtitle_en: 'Home-cooked warmth and rich flavors from Khartoum to Obor',
+  heroTitle_ro: 'Bucătărie sudaneză și arabă autentică în București',
+  heroSubtitle_ro: 'Caldura mâncărurilor de acasă și arome bogate, de la Khartoum la Obor',
   welcomeTitle: 'Welcome to Gedo',
   welcomeText:
     'Founded by Chef Mahmoud "Gedo" Ibrahim in 2018, our restaurant brings the authentic flavors of Sudan and the Middle East to Romania.',
+  welcomeTitle_en: 'Welcome to Gedo',
+  welcomeText_en:
+    'Founded by Chef Mahmoud "Gedo" Ibrahim in 2018, our restaurant brings the authentic flavors of Sudan and the Middle East to Romania.',
+  welcomeTitle_ro: 'Bine ai venit la Gedo',
+  welcomeText_ro:
+    'Fondat de Chef Mahmoud „Gedo” Ibrahim în 2018, restaurantul nostru aduce în România aromele autentice ale Sudanului și Orientului Mijlociu.',
   logoUrl: null,
+  heroBackgroundUrl: null,
   signatureDishIds: [],
   contactPhone: '+40 721 234 567',
   contactAddress: 'Str. Ion Maiorescu 18, Obor, Bucharest, Romania',
@@ -304,6 +348,15 @@ const defaultSiteSettings = {
     { label: 'Sunday', value: '12:00 - 21:00' },
   ],
   social: { facebook: '', instagram: '', tiktok: '' },
+  tagline_en: 'Sudanese & Arabic Restaurant',
+  tagline_ro: 'Restaurant sudanez și arab',
+  // About content (bilingual)
+  aboutTitle_en: 'Our Story',
+  aboutTitle_ro: 'Povestea noastră',
+  aboutBody_en:
+    'Gedo Restaurant was founded by Chef Issam “Gedo” Mirghani in 1999, after he fled the civil war in Sudan and found a new home in Bucharest. “Gedo” means grandfather in Sudanese Arabic, a tribute to the chef’s own grandfather who taught him the secrets of heart‑warming home cooking back in Khartoum.\n\nHidden in the streets behind Piața Obor, Gedo quickly became an insider spot for expats, Arab communities and adventurous locals looking for authentic flavours at honest prices. Everyday the menu changes depending on the freshest produce and spices imported from Egypt, Syria and Lebanon, while meats are sourced locally and prepared in our own halal butchery.\n\nWhether you come for our emblematic Lentil Soup, slow-cooked Mulah Bamia, or fragrant Lamb Mandi, you’ll always be welcomed like family – with a cup of cardamom coffee and plenty of warm stories.',
+  aboutBody_ro:
+    'Restaurantul Gedo a fost fondat de Chef Issam „Gedo” Mirghani în 1999, după ce a fugit de războiul civil din Sudan și și-a găsit o nouă casă la București. „Gedo” înseamnă bunic în arabă sudaneză, un omagiu adus bunicului care i-a transmis secretele bucătăriei de acasă.\n\nAscuns pe străduțele din spatele Pieței Obor, Gedo a devenit rapid un loc preferat de expați, comunități arabe și localnici dornici de a descoperi arome autentice la prețuri corecte. Meniul se schimbă zilnic în funcție de cele mai proaspete ingrediente și condimente aduse din Egipt, Siria și Liban, iar carnea este selectată local și pregătită în măcelăria noastră halal.\n\nFie că vii pentru emblematica Ciorbă de linte, Mulah Bamia gătită încet sau aromatul Lamb Mandi, vei fi mereu întâmpinat ca în familie – cu o cafea cu cardamom și povești calde.',
 };
 
 app.get('/api/site', async (_req, res) => {

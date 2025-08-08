@@ -20,12 +20,22 @@ export default function Reservation() {
             Call us directly and we’ll happily secure your table or prepare your takeaway.
           </p>
 
-          <a
-            href={`tel:${phone}`}
-            className="inline-block px-8 py-3 bg-gedo-gold text-white font-medium rounded-full shadow-md hover:bg-white hover:text-gedo-green transition duration-300"
-          >
-            {phone}
-          </a>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href={`tel:${phone}`}
+              className="inline-block px-8 py-3 bg-gedo-gold text-white font-medium rounded-full shadow-md hover:bg-white hover:text-gedo-green transition duration-300"
+            >
+              {phone}
+            </a>
+            <a
+              href={`https://wa.me/${phone.replace(/[^\d]/g,'')}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-full shadow-md hover:shadow-lg transition"
+            >
+              <i className="fa-brands fa-whatsapp"></i> WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     </motion.section>

@@ -1,7 +1,9 @@
 import useFetch from '../hooks/useFetch';
 import { phone as fallbackPhone } from '../data';
+import { useI18n } from '../i18n.jsx';
 
 export default function Footer() {
+  const { t, lang } = useI18n();
   const { data: site } = useFetch('/api/site');
   const phone = site?.contactPhone || fallbackPhone;
   const address = site?.contactAddress || 'Str. Ion Maiorescu 18, Obor\nBucharest, Romania';
@@ -26,10 +28,12 @@ export default function Footer() {
               <div className="w-10 h-10 bg-gedo-green rounded-full flex items-center justify-center text-white mr-3">
                 <span className="font-playfair text-lg font-bold">G</span>
               </div>
-              <h3 className="font-playfair text-xl text-gedo-green">Gedo Restaurant</h3>
+              <h3 className="font-playfair text-xl text-gedo-green">{t('footer.about')}</h3>
             </div>
             <p className="text-gedo-brown text-sm mb-4">
-              {site?.welcomeText || 'Authentic Sudanese & Arabic cuisine in the heart of Bucharest. Family recipes, warm hospitality, and the rich flavors of North Africa.'}
+              {lang === 'ro'
+                ? site?.welcomeText_ro || site?.welcomeText || 'Bucătărie sudaneză și arabă autentică în inima Bucureștiului.'
+                : site?.welcomeText_en || site?.welcomeText || 'Authentic Sudanese & Arabic cuisine in the heart of Bucharest. Family recipes, warm hospitality, and the rich flavors of North Africa.'}
             </p>
             <div className="flex space-x-4">
               {site?.social?.facebook ? (
@@ -52,7 +56,7 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="font-playfair text-xl text-gedo-green mb-4">Contact Us</h3>
+            <h3 className="font-playfair text-xl text-gedo-green mb-4">{t('footer.contactUs')}</h3>
             <ul className="space-y-3 text-gedo-brown">
               <li className="flex items-start">
                 <i className="fa-solid fa-location-dot mt-1 mr-3 text-gedo-gold"></i>
@@ -73,7 +77,7 @@ export default function Footer() {
 
           {/* Hours */}
           <div>
-            <h3 className="font-playfair text-xl text-gedo-green mb-4">Opening Hours</h3>
+            <h3 className="font-playfair text-xl text-gedo-green mb-4">{t('footer.opening')}</h3>
             <ul className="space-y-2 text-gedo-brown">
               {openingHours.map((h, idx) => (
                 <li key={idx} className="flex justify-between">
@@ -86,7 +90,7 @@ export default function Footer() {
 
           {/* Location */}
           <div>
-            <h3 className="font-playfair text-xl text-gedo-green mb-4">Find Us</h3>
+            <h3 className="font-playfair text-xl text-gedo-green mb-4">{t('footer.findUs')}</h3>
           <div className="h-40 rounded-lg overflow-hidden">
             <iframe
               title="map"
@@ -99,8 +103,8 @@ export default function Footer() {
               referrerPolicy="no-referrer-when-downgrade"
             ></iframe>
           </div>
-          <a href={directionsUrl} target="_blank" rel="noreferrer" className="inline-block mt-3 text-gedo-green hover:text-gedo-gold transition cursor-pointer">
-              <i className="fa-solid fa-directions mr-1"></i> Get Directions
+            <a href={directionsUrl} target="_blank" rel="noreferrer" className="inline-block mt-3 text-gedo-green hover:text-gedo-gold transition cursor-pointer">
+              <i className="fa-solid fa-directions mr-1"></i> {t('footer.directions')}
             </a>
           </div>
         </div>

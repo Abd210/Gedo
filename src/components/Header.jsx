@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import useFetch from '../hooks/useFetch';
+import LanguageToggle from './LanguageToggle';
+import { useI18n } from '../i18n.jsx';
 import { motion } from 'framer-motion';
 import { phone } from '../data';
 import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
-  { name: 'Home', path: '/' },
-  { name: 'Menu', path: '/menu' },
-  { name: 'About', path: '/about' },
-  { name: 'Contact', path: '/contact' },
-  { name: 'Admin', path: '/admin' },
+  { name: 'home', path: '/' },
+  { name: 'menu', path: '/menu' },
+  { name: 'about', path: '/about' },
+  { name: 'contact', path: '/contact' },
+  { name: 'gallery', path: '/gallery' },
+  { name: 'admin', path: '/admin' },
 ];
 
 export default function Header() {
@@ -17,6 +20,7 @@ export default function Header() {
   const [elevated, setElevated] = useState(false);
   const location = useLocation();
   const { data: site } = useFetch('/api/site');
+  const { lang, setLang, t } = useI18n();
 
   useEffect(() => {
     const onScroll = () => setElevated(window.scrollY > 8);
@@ -49,21 +53,32 @@ export default function Header() {
           )}
           <div>
             <h1 className="font-playfair text-gedo-green text-2xl font-bold">Gedo</h1>
-            <p className="text-xs text-gedo-brown -mt-1">Sudanese & Arabic Restaurant</p>
+            <p className="text-xs text-gedo-brown -mt-1">
+              {lang === 'ro' ? (site?.tagline_ro || 'Restaurant sudanez și arab') : (site?.tagline_en || 'Sudanese & Arabic Restaurant')}
+            </p>
           </div>
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex space-x-8">
+        <nav className="hidden md:flex items-center space-x-8">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
               className={`${linkBase} ${location.pathname === item.path ? 'text-gedo-gold' : ''}`}
             >
-              {item.name}
+              {t(`nav.${item.name.toLowerCase()}`)}
             </Link>
           ))}
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent('Gedo Restaurant')}`}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1.5 border border-gedo-green rounded-full text-sm hover:bg-gedo-green hover:text-white transition"
+          >
+            {t('footer.directions')}
+          </a>
+          <LanguageToggle value={lang} onChange={setLang} />
         </nav>
 
         {/* Right actions */}

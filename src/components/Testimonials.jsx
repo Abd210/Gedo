@@ -2,8 +2,10 @@ import TestimonialCard from './TestimonialCard';
 import { motion } from 'framer-motion';
 import useFetch from '../hooks/useFetch';
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n.jsx';
 
 export default function Testimonials() {
+  const { t } = useI18n();
   const { data, loading, error } = useFetch('/api/testimonials');
   const testimonials = Array.isArray(data) ? data : [];
   // Use CSS marquee for buttery infinite scroll; users can still scroll
@@ -23,9 +25,7 @@ export default function Testimonials() {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-14">
-          <h2 className="font-playfair text-3xl md:text-4xl text-gedo-green mb-3">
-            What Our Guests Say
-          </h2>
+          <h2 className="font-playfair text-3xl md:text-4xl text-gedo-green mb-3">{t('testimonials.title')}</h2>
           <p className="text-gedo-brown max-w-2xl mx-auto">
             The authentic taste of Sudan and the Middle East in the heart of Bucharest
           </p>
@@ -49,7 +49,7 @@ export default function Testimonials() {
             className="px-6 py-3 bg-gedo-green text-white rounded-full shadow-card hover:shadow-hover transition"
             onClick={() => setShowForm(true)}
           >
-            Leave a Review
+            {t('testimonials.leave')}
           </button>
         </div>
 
@@ -74,7 +74,7 @@ export default function Testimonials() {
                 }
               }}
             >
-              <h3 className="text-xl font-semibold mb-4">Leave a Review</h3>
+              <h3 className="text-xl font-semibold mb-4">{t('testimonials.leave')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input className="border rounded px-3 py-2" placeholder="Your name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 <input className="border rounded px-3 py-2" type="email" placeholder="Your email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
