@@ -7,11 +7,11 @@ export default function TestimonialCard({ testimonial }) {
   return (
     <motion.div
       id={`testimonial-${testimonial.id}`}
-      className="bg-gedo-cream rounded-lg p-6 shadow-md relative"
-      initial={{ opacity: 0, y: 30 }}
+      className="bg-white rounded-xl p-6 shadow-card relative"
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: testimonial.id * 0.1 }}
+      transition={{ duration: 0.5 }}
     >
       <div className="absolute -top-4 left-6 text-gedo-gold text-4xl">
         <i className="fa-solid fa-quote-left"></i>

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { phone } from '../data';
 import { Link } from 'react-router-dom';
 import useFetch from '../hooks/useFetch';
+import ScrollHint from './ScrollHint';
 
 export default function Hero() {
   const { data: site } = useFetch('/api/site');
@@ -9,7 +10,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="pt-24 md:pt-32 h-[700px] md:h-[800px] relative overflow-hidden bg-gedo-green bg-opacity-95 bg-arabic-pattern bg-center"
+      className="pt-28 md:pt-36 min-h-[70vh] relative overflow-hidden bg-gedo-green bg-opacity-95 bg-arabic-pattern bg-center"
     >
       <div className="absolute inset-0 bg-gradient-to-b from-gedo-green/80 to-gedo-green/95"></div>
 
@@ -22,11 +23,21 @@ export default function Hero() {
           className="flex flex-col items-center text-center pt-8 md:pt-16"
         >
           {/* Logo plate */}
-          <div className="w-48 h-48 md:w-64 md:h-64 bg-white rounded-full shadow-xl flex items-center justify-center mb-8 border-8 border-gedo-cream">
-            <div className="w-40 h-40 md:w-56 md:h-56 bg-gedo-green rounded-full flex items-center justify-center">
-              <h2 className="font-playfair text-white text-5xl md:text-6xl font-bold italic">Gedo</h2>
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-56 h-56 md:w-72 md:h-72 rounded-full border-gedo-gold/30 border-2 spin-slower"></div>
+            </div>
+            <div className="w-44 h-44 md:w-60 md:h-60 bg-white rounded-full shadow-hover flex items-center justify-center border-8 border-gedo-cream overflow-hidden pulse-glow">
+              {site?.logoUrl ? (
+                <img src={site.logoUrl} alt="logo" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-36 h-36 md:w-52 md:h-52 bg-gedo-green rounded-full flex items-center justify-center">
+                  <h2 className="font-playfair text-white text-5xl md:text-6xl font-bold italic">Gedo</h2>
+                </div>
+              )}
             </div>
           </div>
+          <ScrollHint />
 
           <h1 className="font-playfair text-3xl md:text-5xl text-white font-bold mb-4 max-w-3xl">
             {site?.heroTitle || 'Authentic Sudanese & Arabic Cuisine in Bucharest'}

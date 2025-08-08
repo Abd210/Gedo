@@ -12,6 +12,22 @@ module.exports = {
         'gedo-gold': '#D4B96A',
         'gedo-red': '#C25B56',
       },
+      boxShadow: {
+        card: '0 10px 25px rgba(0,0,0,0.08)',
+        hover: '0 14px 35px rgba(0,0,0,0.12)',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
+      },
+      keyframes: {
+        fadeUp: {
+          '0%': { opacity: 0, transform: 'translateY(20px)' },
+          '100%': { opacity: 1, transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        fadeUp: 'fadeUp 600ms ease-out both',
+      },
       fontFamily: {
         playfair: ['\"Playfair Display\"', 'serif'],
         poppins: ['Poppins', 'sans-serif'],

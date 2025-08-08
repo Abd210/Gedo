@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
+import BackgroundFX from './components/BackgroundFX';
+import ScrollToTop from './components/ScrollToTop';
+import FloatingCTA from './components/FloatingCTA';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Menu from './pages/Menu';
@@ -10,6 +13,7 @@ import Admin from './pages/Admin';
 export default function App() {
   return (
     <BrowserRouter>
+      <BackgroundFX />
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -19,6 +23,8 @@ export default function App() {
               <Route path="/admin" element={<Admin />} />
       </Routes>
       <Footer />
+      <ScrollToTop />
+      <FloatingCTA />
     </BrowserRouter>
   );
 }

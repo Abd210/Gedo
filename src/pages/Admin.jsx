@@ -24,7 +24,14 @@ export default function Admin() {
 
   async function fetchCollection(col) {
     try {
-      const res = await fetch(`/api/${col}`);
+      let res;
+      if (col === 'testimonials') {
+        res = await fetch('/api/admin/testimonials', {
+          headers: { Authorization: BASIC_AUTH },
+        });
+      } else {
+        res = await fetch(`/api/${col}`);
+      }
       const data = await res.json();
       if (col === 'dishes') setDishes(data);
       else setTestimonials(data);
@@ -99,6 +106,22 @@ export default function Admin() {
 
   async function revertSiteChanges() {
     await fetchSite();
+  }
+
+  async function uploadSiteImage(file, key) {
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: BASIC_AUTH },
+        body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const partial = { [key]: data.url };
+      setSite((p) => ({ ...(p || {}), ...partial }));
+    } catch (e) {
+      alert('Upload failed');
+    }
   }
 
   async function handleDelete(col, id) {
@@ -220,6 +243,7 @@ export default function Admin() {
               <th className="p-2">Name</th>
               <th className="p-2">Quote</th>
               <th className="p-2">Stars</th>
+              <th className="p-2">Status</th>
               <th className="p-2">Actions</th>
             </tr>
           </thead>
@@ -229,12 +253,22 @@ export default function Admin() {
                 <td className="p-2">{t.name}</td>
                 <td className="p-2 max-w-sm truncate">{t.quote}</td>
                 <td className="p-2">{t.stars}</td>
+                <td className="p-2">{t.approved ? 'Approved' : 'Pending'}</td>
                 <td className="p-2 space-x-4">
                   <button
                     className="text-gedo-green"
                     onClick={() => setFormState({ show: true, editing: t, type: 'testimonial' })}
                   >
                     Edit
+                  </button>
+                  <button
+                    className="text-blue-600"
+                    onClick={async () => {
+                      await upsert('testimonials', { approved: !t.approved }, t.id);
+                      setTestimonials((p) => p.map((x) => (x.id === t.id ? { ...x, approved: !t.approved } : x)));
+                    }}
+                  >
+                    {t.approved ? 'Unapprove' : 'Approve'}
                   </button>
                   <button className="text-gedo-red" onClick={() => handleDelete('testimonials', t.id)}>
                     Delete
@@ -254,8 +288,19 @@ export default function Admin() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm mb-1">Logo</label>
+                    {site?.logoUrl ? (
+                      <div className="flex items-center gap-3 mb-2">
+                        <img src={site.logoUrl} alt="logo" className="h-12 w-12 object-cover rounded" />
+                        <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), logoUrl: null }))}>Remove</button>
+                      </div>
+                    ) : null}
+                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadSiteImage(e.target.files[0], 'logoUrl')} />
+                    <p className="text-xs text-gedo-brown mt-1">Upload your restaurant logo to replace the default "G" badge.</p>
+                  </div>
               <div>
                 <label className="block text-sm mb-1">Today's Special</label>
                 <select
@@ -271,6 +316,41 @@ export default function Admin() {
                   ))}
                 </select>
                 <p className="text-xs text-gedo-brown mt-1">Pick one of your dishes to feature on the homepage.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Signature Dishes (showcase)</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(site?.signatureDishIds || []).map((id) => {
+                    const d = dishes.find((x) => x.id === id);
+                    if (!d) return null;
+                    return (
+                      <span key={id} className="px-2 py-1 bg-gray-100 rounded text-sm flex items-center gap-2">
+                        {d.name}
+                        <button className="text-gedo-red" onClick={() => setSite((p) => ({ ...(p || {}), signatureDishIds: (p?.signatureDishIds || []).filter((x) => x !== id) }))}>
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    if (!id) return;
+                    setSite((p) => ({ ...(p || {}), signatureDishIds: Array.from(new Set([ ...(p?.signatureDishIds || []), id ])) }));
+                  }}
+                >
+                  <option value="">+ Add dish</option>
+                  {dishes.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gedo-brown mt-1">Choose multiple dishes to highlight in the Signature section.</p>
+                <div className="mt-2">
+                  <button className="px-4 py-2 bg-gedo-green text-white rounded" onClick={() => saveSite({ signatureDishIds: site?.signatureDishIds || [] })}>Save Signature Dishes</button>
+                </div>
               </div>
 
               <div>

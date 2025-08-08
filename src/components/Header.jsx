@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import useFetch from '../hooks/useFetch';
 import { motion } from 'framer-motion';
 import { phone } from '../data';
 import { Link, useLocation } from 'react-router-dom';
@@ -13,7 +14,16 @@ const navItems = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [elevated, setElevated] = useState(false);
   const location = useLocation();
+  const { data: site } = useFetch('/api/site');
+
+  useEffect(() => {
+    const onScroll = () => setElevated(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const linkBase =
     'text-gedo-green hover:text-gedo-gold transition cursor-pointer font-medium';
@@ -23,14 +33,20 @@ export default function Header() {
       initial={{ y: -60 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="fixed w-full bg-white bg-opacity-95 shadow-md z-50"
+      className={`fixed w-full z-50 transition duration-300 ${
+        elevated ? 'bg-white/90 backdrop-blur shadow-lg' : 'bg-white/95'
+      }`}
     >
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <div className="w-12 h-12 bg-gedo-green rounded-full flex items-center justify-center text-white mr-3">
-            <span className="font-playfair text-xl font-bold">G</span>
-          </div>
+          {site?.logoUrl ? (
+            <img src={site.logoUrl} alt="logo" className="w-12 h-12 rounded-full object-cover mr-3 shadow-card" />
+          ) : (
+            <div className="w-12 h-12 bg-gedo-green rounded-full flex items-center justify-center text-white mr-3">
+              <span className="font-playfair text-xl font-bold">G</span>
+            </div>
+          )}
           <div>
             <h1 className="font-playfair text-gedo-green text-2xl font-bold">Gedo</h1>
             <p className="text-xs text-gedo-brown -mt-1">Sudanese & Arabic Restaurant</p>

@@ -199,7 +199,8 @@ app.post('/api/upload', verifyAuth, upload.single('image'), (req, res) => {
 
 app.get('/api/testimonials', async (req, res) => {
   try {
-    const snapshot = await testimonialsCol.get();
+    // Public: only return approved testimonials
+    const snapshot = await testimonialsCol.where('approved', '==', true).get();
     const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     res.json(data);
   } catch (err) {
@@ -211,7 +212,8 @@ app.get('/api/testimonials', async (req, res) => {
 
 app.post('/api/testimonials', verifyAuth, async (req, res) => {
   try {
-    const doc = await testimonialsCol.add(req.body);
+    const payload = { ...req.body, approved: req.body.approved ?? true, createdAt: Date.now() };
+    const doc = await testimonialsCol.add(payload);
     res.json({ id: doc.id });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -236,6 +238,50 @@ app.delete('/api/testimonials/:id', verifyAuth, async (req, res) => {
   }
 });
 
+// Admin-only list of testimonials (all, including unapproved)
+app.get('/api/admin/testimonials', verifyAuth, async (_req, res) => {
+  try {
+    const snapshot = await testimonialsCol.get();
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// --- Public testimonial submission with validation and basic anti-spam ---
+const lastPostByIp = new Map();
+const BAD_WORDS = ['fuck','shit','bitch','asshole','cunt','bastard','dick','piss'];
+function containsProfanity(text = '') {
+  const lower = String(text).toLowerCase();
+  return BAD_WORDS.some((w) => lower.includes(w));
+}
+function isValidEmail(email = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+app.post('/api/public/testimonials', async (req, res) => {
+  try {
+    const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString();
+    const now = Date.now();
+    const last = lastPostByIp.get(ip) || 0;
+    if (now - last < 5 * 60 * 1000) {
+      return res.status(429).json({ error: 'Please wait before submitting another review.' });
+    }
+    const { name, email, quote, stars } = req.body || {};
+    if (!name || !email || !quote) return res.status(400).json({ error: 'Missing fields' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'Invalid email' });
+    if (containsProfanity(quote) || containsProfanity(name)) return res.status(400).json({ error: 'Inappropriate language detected' });
+    const safeStars = Math.max(0, Math.min(5, Number(stars ?? 5)));
+    const payload = { name, email, quote, stars: safeStars, approved: false, createdAt: now, avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}` };
+    const doc = await testimonialsCol.add(payload);
+    lastPostByIp.set(ip, now);
+    res.json({ id: doc.id, success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ---- Site settings ----
 const siteDocRef = db.collection('site').doc('settings');
 
@@ -246,6 +292,8 @@ const defaultSiteSettings = {
   welcomeTitle: 'Welcome to Gedo',
   welcomeText:
     'Founded by Chef Mahmoud "Gedo" Ibrahim in 2018, our restaurant brings the authentic flavors of Sudan and the Middle East to Romania.',
+  logoUrl: null,
+  signatureDishIds: [],
   contactPhone: '+40 721 234 567',
   contactAddress: 'Str. Ion Maiorescu 18, Obor, Bucharest, Romania',
   mapEmbedUrl:
