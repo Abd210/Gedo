@@ -1,6 +1,7 @@
 import DishCard from './DishCard';
 import { motion } from 'framer-motion';
 import useFetch from '../hooks/useFetch';
+import { Link } from 'react-router-dom';
 
 export default function SignatureDishes() {
   const { data, loading, error } = useFetch('/api/dishes');
@@ -38,9 +39,9 @@ export default function SignatureDishes() {
         </div>
 
         <div className="text-center mt-12">
-          <span className="inline-block px-8 py-3 bg-gedo-green text-white font-medium rounded-full shadow-md hover:shadow-lg transition duration-300 cursor-pointer">
+          <Link to="/menu" className="inline-block px-8 py-3 bg-gedo-green text-white font-medium rounded-full shadow-md hover:shadow-lg transition duration-300">
             View Full Menu
-          </span>
+          </Link>
         </div>
       </div>
     </motion.section>

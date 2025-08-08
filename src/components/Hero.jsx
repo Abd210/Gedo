@@ -1,7 +1,11 @@
 import { motion } from 'framer-motion';
 import { phone } from '../data';
+import { Link } from 'react-router-dom';
+import useFetch from '../hooks/useFetch';
 
 export default function Hero() {
+  const { data: site } = useFetch('/api/site');
+  const displayPhone = site?.contactPhone || phone;
   return (
     <section
       id="hero"
@@ -25,19 +29,19 @@ export default function Hero() {
           </div>
 
           <h1 className="font-playfair text-3xl md:text-5xl text-white font-bold mb-4 max-w-3xl">
-            Authentic Sudanese & Arabic Cuisine in Bucharest
+            {site?.heroTitle || 'Authentic Sudanese & Arabic Cuisine in Bucharest'}
           </h1>
 
           <p className="text-gedo-cream text-lg md:text-xl mb-10 max-w-2xl">
-            Home-cooked warmth and rich flavors from Khartoum to Obor
+            {site?.heroSubtitle || 'Home-cooked warmth and rich flavors from Khartoum to Obor'}
           </p>
 
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-            <span className="px-8 py-3 bg-white text-gedo-green font-medium rounded-full shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-1 cursor-pointer">
+            <Link to="/menu" className="px-8 py-3 bg-white text-gedo-green font-medium rounded-full shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-1">
               <i className="fa-solid fa-utensils mr-2"></i> View Menu
-            </span>
-            <a href={`tel:${phone}`} className="px-8 py-3 bg-gedo-gold text-white font-medium rounded-full shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-1">
-              <i className="fa-regular fa-calendar-check mr-2"></i> Call {phone}
+            </Link>
+            <a href={`tel:${displayPhone}`} className="px-8 py-3 bg-gedo-gold text-white font-medium rounded-full shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-1">
+              <i className="fa-regular fa-calendar-check mr-2"></i> Call {displayPhone}
             </a>
           </div>
         </motion.div>

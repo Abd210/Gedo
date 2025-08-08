@@ -1,4 +1,16 @@
+import useFetch from '../hooks/useFetch';
+import { phone as fallbackPhone } from '../data';
+
 export default function Footer() {
+  const { data: site } = useFetch('/api/site');
+  const phone = site?.contactPhone || fallbackPhone;
+  const address = site?.contactAddress || 'Str. Ion Maiorescu 18, Obor\nBucharest, Romania';
+  const openingHours = site?.openingHours || [
+    { label: 'Monday - Thursday', value: '11:00 - 22:00' },
+    { label: 'Friday - Saturday', value: '11:00 - 23:00' },
+    { label: 'Sunday', value: '12:00 - 21:00' },
+  ];
+  const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.replace(/\n/g, ' '))}`;
   return (
     <footer id="footer" className="bg-white relative">
       <div
@@ -17,19 +29,24 @@ export default function Footer() {
               <h3 className="font-playfair text-xl text-gedo-green">Gedo Restaurant</h3>
             </div>
             <p className="text-gedo-brown text-sm mb-4">
-              Authentic Sudanese & Arabic cuisine in the heart of Bucharest. Family recipes, warm
-              hospitality, and the rich flavors of North Africa.
+              {site?.welcomeText || 'Authentic Sudanese & Arabic cuisine in the heart of Bucharest. Family recipes, warm hospitality, and the rich flavors of North Africa.'}
             </p>
             <div className="flex space-x-4">
-              <span className="text-gedo-green hover:text-gedo-gold transition cursor-pointer">
-                <i className="fa-brands fa-facebook-f"></i>
-              </span>
-              <span className="text-gedo-green hover:text-gedo-gold transition cursor-pointer">
-                <i className="fa-brands fa-instagram"></i>
-              </span>
-              <span className="text-gedo-green hover:text-gedo-gold transition cursor-pointer">
-                <i className="fa-brands fa-tiktok"></i>
-              </span>
+              {site?.social?.facebook ? (
+                <a href={site.social.facebook} target="_blank" rel="noreferrer" className="text-gedo-green hover:text-gedo-gold transition cursor-pointer">
+                  <i className="fa-brands fa-facebook-f"></i>
+                </a>
+              ) : null}
+              {site?.social?.instagram ? (
+                <a href={site.social.instagram} target="_blank" rel="noreferrer" className="text-gedo-green hover:text-gedo-gold transition cursor-pointer">
+                  <i className="fa-brands fa-instagram"></i>
+                </a>
+              ) : null}
+              {site?.social?.tiktok ? (
+                <a href={site.social.tiktok} target="_blank" rel="noreferrer" className="text-gedo-green hover:text-gedo-gold transition cursor-pointer">
+                  <i className="fa-brands fa-tiktok"></i>
+                </a>
+              ) : null}
             </div>
           </div>
 
@@ -39,15 +56,11 @@ export default function Footer() {
             <ul className="space-y-3 text-gedo-brown">
               <li className="flex items-start">
                 <i className="fa-solid fa-location-dot mt-1 mr-3 text-gedo-gold"></i>
-                <span>
-                  Str. Ion Maiorescu 18, Obor
-                  <br />
-                  Bucharest, Romania
-                </span>
+                <span style={{ whiteSpace: 'pre-line' }}>{address}</span>
               </li>
               <li className="flex items-center">
                 <i className="fa-solid fa-phone mr-3 text-gedo-gold"></i>
-                <span className="hover:text-gedo-green transition cursor-pointer">+40 721 234 567</span>
+                <a href={`tel:${phone}`} className="hover:text-gedo-green transition cursor-pointer">{phone}</a>
               </li>
               <li className="flex items-center">
                 <i className="fa-solid fa-envelope mr-3 text-gedo-gold"></i>
@@ -62,18 +75,12 @@ export default function Footer() {
           <div>
             <h3 className="font-playfair text-xl text-gedo-green mb-4">Opening Hours</h3>
             <ul className="space-y-2 text-gedo-brown">
-              <li className="flex justify-between">
-                <span>Monday - Thursday</span>
-                <span>11:00 - 22:00</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Friday - Saturday</span>
-                <span>11:00 - 23:00</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Sunday</span>
-                <span>12:00 - 21:00</span>
-              </li>
+              {openingHours.map((h, idx) => (
+                <li key={idx} className="flex justify-between">
+                  <span>{h.label}</span>
+                  <span>{h.value}</span>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -87,9 +94,9 @@ export default function Footer() {
                 alt="Map"
               />
             </div>
-            <span className="inline-block mt-3 text-gedo-green hover:text-gedo-gold transition cursor-pointer">
+            <a href={directionsUrl} target="_blank" rel="noreferrer" className="inline-block mt-3 text-gedo-green hover:text-gedo-gold transition cursor-pointer">
               <i className="fa-solid fa-directions mr-1"></i> Get Directions
-            </span>
+            </a>
           </div>
         </div>
 

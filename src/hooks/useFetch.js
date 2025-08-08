@@ -8,6 +8,15 @@ export default function useFetch(url, opts) {
 
   useEffect(() => {
     let mounted = true;
+    if (!url) {
+      // No-op fetch
+      setLoading(false);
+      setData(null);
+      setError(null);
+      return () => {
+        mounted = false;
+      };
+    }
     setLoading(true);
     fetch(apiUrl(url), opts)
       .then(async (r) => {

@@ -27,7 +27,7 @@ export default function Header() {
     >
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
-        <div className="flex items-center">
+        <Link to="/" className="flex items-center">
           <div className="w-12 h-12 bg-gedo-green rounded-full flex items-center justify-center text-white mr-3">
             <span className="font-playfair text-xl font-bold">G</span>
           </div>
@@ -35,7 +35,7 @@ export default function Header() {
             <h1 className="font-playfair text-gedo-green text-2xl font-bold">Gedo</h1>
             <p className="text-xs text-gedo-brown -mt-1">Sudanese & Arabic Restaurant</p>
           </div>
-        </div>
+        </Link>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex space-x-8">

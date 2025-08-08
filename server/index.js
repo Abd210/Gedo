@@ -139,6 +139,16 @@ app.get('/api/dishes', async (req, res) => {
   }
 });
 
+app.get('/api/dishes/:id', async (req, res) => {
+  try {
+    const doc = await dishesCol.doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Not found' });
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.post('/api/dishes', verifyAuth, async (req, res) => {
   try {
     const doc = await dishesCol.add(req.body);
@@ -226,7 +236,49 @@ app.delete('/api/testimonials/:id', verifyAuth, async (req, res) => {
   }
 });
 
-// TODO: endpoints for any additional content
+// ---- Site settings ----
+const siteDocRef = db.collection('site').doc('settings');
+
+const defaultSiteSettings = {
+  todaysSpecialDishId: null,
+  heroTitle: 'Authentic Sudanese & Arabic Cuisine in Bucharest',
+  heroSubtitle: 'Home-cooked warmth and rich flavors from Khartoum to Obor',
+  welcomeTitle: 'Welcome to Gedo',
+  welcomeText:
+    'Founded by Chef Mahmoud "Gedo" Ibrahim in 2018, our restaurant brings the authentic flavors of Sudan and the Middle East to Romania.',
+  contactPhone: '+40 721 234 567',
+  contactAddress: 'Str. Ion Maiorescu 18, Obor, Bucharest, Romania',
+  mapEmbedUrl:
+    'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2848.1495794762375!2d26.11831591553598!3d44.448180579102395!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40b1fff4c02a0a27%3A0x4b37b3303ef1d640!2sStrada%20Ion%20Maiorescu%2018%2C%20Bucure%C8%99ti%20030671!5e0!3m2!1sen!2sro!4v1691498320221!5m2!1sen!2sro',
+  openingHours: [
+    { label: 'Monday - Thursday', value: '11:00 - 22:00' },
+    { label: 'Friday - Saturday', value: '11:00 - 23:00' },
+    { label: 'Sunday', value: '12:00 - 21:00' },
+  ],
+  social: { facebook: '', instagram: '', tiktok: '' },
+};
+
+app.get('/api/site', async (_req, res) => {
+  try {
+    const snap = await siteDocRef.get();
+    if (!snap.exists) return res.json(defaultSiteSettings);
+    const data = snap.data() || {};
+    res.json({ ...defaultSiteSettings, ...data });
+  } catch (err) {
+    console.error('GET /api/site error:', err);
+    res.json(defaultSiteSettings);
+  }
+});
+
+app.put('/api/site', verifyAuth, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    await siteDocRef.set(payload, { merge: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Backend listening on ${PORT}`));

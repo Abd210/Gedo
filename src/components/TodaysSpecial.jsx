@@ -1,7 +1,11 @@
 import { motion } from 'framer-motion';
 import { phone } from '../data';
+import useFetch from '../hooks/useFetch';
 
 export default function TodaysSpecial() {
+  const { data: site } = useFetch('/api/site');
+  const specialId = site?.todaysSpecialDishId;
+  const { data: dish } = useFetch(specialId ? `/api/dishes/${specialId}` : null);
   return (
     <motion.section
       id="todays-special"
@@ -17,15 +21,14 @@ export default function TodaysSpecial() {
             <span className="inline-block px-4 py-1 bg-gedo-red text-white text-sm rounded-full mb-6">
               Today's Special
             </span>
-            <h2 className="font-playfair text-3xl text-gedo-green mb-4">Sudanese Lamb Mandi</h2>
+            <h2 className="font-playfair text-3xl text-gedo-green mb-4">{dish?.name || '—'}</h2>
             <p className="text-gedo-brown mb-6 leading-relaxed">
-              Experience our chef's special preparation of fragrant rice cooked with aromatic spices
-              and tender lamb, slow-roasted to perfection. Served with house-made yogurt sauce and
-              fresh salad.
+              {dish?.description || 'Discover today\'s chef special from our menu.'}
             </p>
             <div className="flex items-center mb-6">
-              <span className="text-gedo-gold text-2xl font-playfair mr-2">89 Lei</span>
-              <span className="text-gedo-red line-through text-sm">105 Lei</span>
+              {dish?.price != null && (
+                <span className="text-gedo-gold text-2xl font-playfair mr-2">{dish.price} Lei</span>
+              )}
             </div>
             <div className="flex items-center space-x-4">
               <span className="flex items-center text-sm text-gedo-brown">
@@ -39,8 +42,8 @@ export default function TodaysSpecial() {
           <div className="md:w-1/2 h-80 md:h-auto">
             <img
               className="w-full h-full object-cover"
-              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bf87ee1b13-a6b52c2f841c2ef4adf2.png"
-              alt="Sudanese Lamb Mandi"
+              src={dish?.image || 'https://storage.googleapis.com/uxpilot-auth.appspot.com/bf87ee1b13-a6b52c2f841c2ef4adf2.png'}
+              alt={dish?.name || 'Today\'s special'}
             />
           </div>
         </div>
