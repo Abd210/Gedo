@@ -1,0 +1,50 @@
+import { motion } from 'framer-motion';
+import { phone } from '../data';
+
+export default function TodaysSpecial() {
+  return (
+    <motion.section
+      id="todays-special"
+      className="py-16 bg-gedo-cream relative"
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row items-center bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="md:w-1/2 p-8 md:p-12">
+            <span className="inline-block px-4 py-1 bg-gedo-red text-white text-sm rounded-full mb-6">
+              Today's Special
+            </span>
+            <h2 className="font-playfair text-3xl text-gedo-green mb-4">Sudanese Lamb Mandi</h2>
+            <p className="text-gedo-brown mb-6 leading-relaxed">
+              Experience our chef's special preparation of fragrant rice cooked with aromatic spices
+              and tender lamb, slow-roasted to perfection. Served with house-made yogurt sauce and
+              fresh salad.
+            </p>
+            <div className="flex items-center mb-6">
+              <span className="text-gedo-gold text-2xl font-playfair mr-2">89 Lei</span>
+              <span className="text-gedo-red line-through text-sm">105 Lei</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="flex items-center text-sm text-gedo-brown">
+                <i className="fa-regular fa-clock mr-2 text-gedo-gold"></i> Available until 10 PM
+              </span>
+              <a href={`tel:${phone}`} className="px-6 py-2 bg-gedo-green text-white text-sm rounded-full hover:bg-gedo-gold transition duration-300">
+                Call {phone}
+              </a>
+            </div>
+          </div>
+          <div className="md:w-1/2 h-80 md:h-auto">
+            <img
+              className="w-full h-full object-cover"
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bf87ee1b13-a6b52c2f841c2ef4adf2.png"
+              alt="Sudanese Lamb Mandi"
+            />
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+}

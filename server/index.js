@@ -1,0 +1,238 @@
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Initialise Firebase Admin SDK with robust env handling
+if (!admin.apps.length) {
+  let serviceAccount;
+  const jsonEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const pathEnv = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+
+  // Try explicit JSON first (can be JSON, a readable path, or base64-encoded JSON)
+  if (!serviceAccount && jsonEnv) {
+    try {
+      serviceAccount = JSON.parse(jsonEnv);
+    } catch (_) {
+      // Not valid JSON, try base64 decode → JSON
+      try {
+        const decoded = Buffer.from(jsonEnv, 'base64').toString('utf8');
+        serviceAccount = JSON.parse(decoded);
+      } catch (_) {
+        // Not base64 JSON either; try treating it as a file path
+      }
+
+      // If still not parsed, try reading as a file path
+      try {
+        const raw = fs.readFileSync(jsonEnv, 'utf8');
+        serviceAccount = JSON.parse(raw);
+      } catch (err) {
+        console.warn('FIREBASE_SERVICE_ACCOUNT_JSON not valid JSON or readable path. Falling back to other options.');
+      }
+    }
+  }
+
+  // Try explicit path env
+  if (!serviceAccount && pathEnv) {
+    try {
+      const raw = fs.readFileSync(pathEnv, 'utf8');
+      serviceAccount = JSON.parse(raw);
+    } catch (err) {
+      console.warn('FIREBASE_SERVICE_ACCOUNT_PATH not readable. Falling back to local serviceAccountKey.json if present.');
+    }
+  }
+
+  // Try local file
+  if (!serviceAccount && fs.existsSync('./serviceAccountKey.json')) {
+    const raw = fs.readFileSync('./serviceAccountKey.json', 'utf8');
+    serviceAccount = JSON.parse(raw);
+  }
+
+  if (!serviceAccount) {
+    console.error('Service account credentials not provided. Either:\n - set FIREBASE_SERVICE_ACCOUNT_JSON\n - set FIREBASE_SERVICE_ACCOUNT_PATH\n - add serviceAccountKey.json in project root');
+    process.exit(1);
+  }
+
+  // Fix common formatting of private_key when provided via env (escaped newlines)
+  if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  }
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    // databaseURL is optional for Firestore-only usage
+    projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
+  });
+}
+
+const db = getFirestore();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+// Ensure uploads directory exists (under server/uploads to avoid Vite dev conflicts)
+const uploadsDir = path.resolve('server', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/media', express.static(uploadsDir));
+
+// Simple request logger
+app.use((req, _res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// Middleware to verify auth for protected routes
+async function verifyAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+
+  // 1) Allow Basic auth using fixed credentials
+  const basic = header.match(/^Basic\s+(.*)$/i);
+  if (basic) {
+    try {
+      const decoded = Buffer.from(basic[1], 'base64').toString('utf8');
+      const [username, password] = decoded.split(':');
+      const expectedUser = process.env.ADMIN_USERNAME || 'Gedo';
+      const expectedPass = process.env.ADMIN_PASSWORD || 'Gedo1999';
+      if (username === expectedUser && password === expectedPass) {
+        req.user = { username };
+        return next();
+      }
+    } catch (_) {}
+    return res.status(401).json({ error: 'Invalid basic credentials' });
+  }
+
+  // 2) Fallback: verify Firebase ID token if provided as Bearer
+  const bearer = header.match(/^Bearer\s+(.*)$/i);
+  const idToken = bearer && bearer[1];
+  if (idToken) {
+    try {
+      const decoded = await admin.auth().verifyIdToken(idToken);
+      req.user = decoded;
+      return next();
+    } catch (err) {
+      console.error('Auth error', err);
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+  }
+
+  return res.status(401).json({ error: 'Missing Authorization' });
+}
+
+// CRUD routes for dishes
+const dishesCol = db.collection('dishes');
+
+app.get('/api/dishes', async (req, res) => {
+  try {
+    const snapshot = await dishesCol.get();
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    res.json(data);
+  } catch (err) {
+    console.error('GET /api/dishes error:', err);
+    // Return empty list to keep frontend functional
+    res.json([]);
+  }
+});
+
+app.post('/api/dishes', verifyAuth, async (req, res) => {
+  try {
+    const doc = await dishesCol.add(req.body);
+    res.json({ id: doc.id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/dishes/:id', verifyAuth, async (req, res) => {
+  try {
+    await dishesCol.doc(req.params.id).set(req.body, { merge: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/dishes/:id', verifyAuth, async (req, res) => {
+  try {
+    await dishesCol.doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// CRUD routes for testimonials
+const testimonialsCol = db.collection('testimonials');
+
+// Disk storage preserving file extensions
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || '';
+    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, name);
+  },
+});
+const upload = multer({ storage });
+
+// Image upload endpoint → returns a public URL to use in image fields
+app.post('/api/upload', verifyAuth, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const url = `/media/${req.file.filename}`;
+  res.json({ url });
+});
+
+app.get('/api/testimonials', async (req, res) => {
+  try {
+    const snapshot = await testimonialsCol.get();
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    res.json(data);
+  } catch (err) {
+    console.error('GET /api/testimonials error:', err);
+    // Return empty list to keep frontend functional
+    res.json([]);
+  }
+});
+
+app.post('/api/testimonials', verifyAuth, async (req, res) => {
+  try {
+    const doc = await testimonialsCol.add(req.body);
+    res.json({ id: doc.id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/testimonials/:id', verifyAuth, async (req, res) => {
+  try {
+    await testimonialsCol.doc(req.params.id).set(req.body, { merge: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/testimonials/:id', verifyAuth, async (req, res) => {
+  try {
+    await testimonialsCol.doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// TODO: endpoints for any additional content
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Backend listening on ${PORT}`));
+
+// Global error handler (keep minimal output in production)
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  res.status(500).json({ error: 'Internal Server Error' });
+});
