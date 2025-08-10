@@ -71,12 +71,28 @@ if (!admin.apps.length) {
 }
 
 const db = getFirestore();
+// Helper to normalize media URLs (fix old localhost URLs and bare filenames)
+function normalizeMediaUrl(input) {
+  if (!input || typeof input !== 'string') return input;
+  try {
+    if (/^https?:\/\/localhost|^https?:\/\/127\.0\.0\.1/.test(input)) {
+      const u = new URL(input);
+      return `https://gedo-server-294732304552.us-central1.run.app${u.pathname}`;
+    }
+  } catch (_) {}
+  if (input.startsWith('/media/')) return input;
+  if (/^[0-9].*\.(png|jpe?g|webp|gif|svg)$/i.test(input)) return `/media/${input}`;
+  return input;
+}
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-// Ensure uploads directory exists (under server/uploads to avoid Vite dev conflicts)
-const uploadsDir = path.resolve('server', 'uploads');
+// Ensure uploads directory exists
+// - In Cloud Run, only /tmp is writable. Use it in production. Use local folder in dev.
+const uploadsDir = process.env.NODE_ENV === 'production'
+  ? path.join('/tmp', 'uploads')
+  : path.resolve('server', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -141,11 +157,16 @@ async function verifyAuth(req, res, next) {
 
 // CRUD routes for dishes
 const dishesCol = db.collection('dishes');
+const categoriesCol = db.collection('categories');
 
 app.get('/api/dishes', async (req, res) => {
   try {
     const snapshot = await dishesCol.get();
-    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const data = snapshot.docs.map((d) => {
+      const doc = { id: d.id, ...d.data() };
+      if (doc.image) doc.image = normalizeMediaUrl(doc.image);
+      return doc;
+    });
     res.json(data);
   } catch (err) {
     console.error('GET /api/dishes error:', err);
@@ -158,7 +179,9 @@ app.get('/api/dishes/:id', async (req, res) => {
   try {
     const doc = await dishesCol.doc(req.params.id).get();
     if (!doc.exists) return res.status(404).json({ error: 'Not found' });
-    res.json({ id: doc.id, ...doc.data() });
+    const data = { id: doc.id, ...doc.data() };
+    if (data.image) data.image = normalizeMediaUrl(data.image);
+    res.json(data);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -166,7 +189,9 @@ app.get('/api/dishes/:id', async (req, res) => {
 
 app.post('/api/dishes', verifyAuth, async (req, res) => {
   try {
-    const doc = await dishesCol.add(req.body);
+    const payload = { ...req.body };
+    if (payload.price != null) payload.price = Number(payload.price);
+    const doc = await dishesCol.add(payload);
     res.json({ id: doc.id });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -175,7 +200,9 @@ app.post('/api/dishes', verifyAuth, async (req, res) => {
 
 app.put('/api/dishes/:id', verifyAuth, async (req, res) => {
   try {
-    await dishesCol.doc(req.params.id).set(req.body, { merge: true });
+    const payload = { ...req.body };
+    if (payload.price != null) payload.price = Number(payload.price);
+    await dishesCol.doc(req.params.id).set(payload, { merge: true });
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -185,6 +212,54 @@ app.put('/api/dishes/:id', verifyAuth, async (req, res) => {
 app.delete('/api/dishes/:id', verifyAuth, async (req, res) => {
   try {
     await dishesCol.doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ---- Categories endpoints ----
+app.get('/api/categories', async (_req, res) => {
+  try {
+    const snap = await categoriesCol.orderBy('order', 'asc').get().catch(async () => await categoriesCol.get());
+    const data = snap.docs.map((d) => ({ id: d.id, order: 0, ...d.data() }));
+    res.json(data);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+app.post('/api/categories', verifyAuth, async (req, res) => {
+  try {
+    const { name, order = 0 } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'Missing name' });
+    const doc = await categoriesCol.add({ name: String(name), order: Number(order) || 0, createdAt: Date.now() });
+    res.json({ id: doc.id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/categories/:id', verifyAuth, async (req, res) => {
+  try {
+    const payload = {};
+    if (req.body?.name != null) payload.name = String(req.body.name);
+    if (req.body?.order != null) payload.order = Number(req.body.order) || 0;
+    await categoriesCol.doc(req.params.id).set(payload, { merge: true });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/categories/:id', verifyAuth, async (req, res) => {
+  try {
+    await categoriesCol.doc(req.params.id).delete();
+    // Optional: clear categoryId from dishes referencing this category
+    const snap = await dishesCol.where('categoryId', '==', req.params.id).get();
+    const batch = db.batch();
+    snap.forEach((doc) => batch.set(dishesCol.doc(doc.id), { categoryId: null }, { merge: true }));
+    await batch.commit();
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -213,8 +288,9 @@ app.post('/api/upload', verifyAuth, upload.single('image'), (req, res) => {
   const baseUrl = process.env.NODE_ENV === 'production' 
     ? 'https://gedo-server-294732304552.us-central1.run.app'
     : `http://localhost:${PORT}`;
-  const url = `${baseUrl}/media/${req.file.filename}`;
-  res.json({ url });
+  const pathUrl = `/media/${req.file.filename}`;
+  const url = `${baseUrl}${pathUrl}`;
+  res.json({ url, path: pathUrl });
 });
 
 app.get('/api/testimonials', async (req, res) => {
@@ -262,7 +338,11 @@ app.delete('/api/testimonials/:id', verifyAuth, async (req, res) => {
 app.get('/api/gallery', async (_req, res) => {
   try {
     const snap = await galleryCol.orderBy('createdAt', 'desc').get();
-    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const data = snap.docs.map((d) => {
+      const g = { id: d.id, ...d.data() };
+      if (g.url) g.url = normalizeMediaUrl(g.url);
+      return g;
+    });
     res.json(data);
   } catch (err) {
     console.error('GET /api/gallery error:', err);
