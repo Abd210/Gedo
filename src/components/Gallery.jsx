@@ -25,10 +25,10 @@ export default function Gallery() {
                   <div className="relative max-w-3xl w-full px-4" onClick={(e) => e.stopPropagation()}>
           <img src={getImageUrl(images[idx]?.url)} alt={images[idx]?.caption || 'photo'} className="w-full max-h-[80vh] object-contain rounded" />
             <div className="absolute inset-y-1/2 left-2 right-2 flex justify-between -translate-y-1/2">
-              <button className="h-10 w-10 rounded-full bg-white/80 hover:bg-white text-gedo-green" onClick={() => setIdx((i) => (i - 1 + IMAGES.length) % IMAGES.length)}>
+              <button className="h-10 w-10 rounded-full bg-white/80 hover:bg-white text-gedo-green" onClick={() => setIdx((i) => (i - 1 + images.length) % images.length)}>
                 <i className="fa-solid fa-chevron-left" />
               </button>
-              <button className="h-10 w-10 rounded-full bg-white/80 hover:bg-white text-gedo-green" onClick={() => setIdx((i) => (i + 1) % IMAGES.length)}>
+              <button className="h-10 w-10 rounded-full bg-white/80 hover:bg-white text-gedo-green" onClick={() => setIdx((i) => (i + 1) % images.length)}>
                 <i className="fa-solid fa-chevron-right" />
               </button>
             </div>

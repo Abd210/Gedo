@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { phone } from '../data';
 import { Link, useLocation } from 'react-router-dom';
 import { getImageUrl } from '../api.js';
+import logoLocal from '../../images/Gedo_Logo.png';
 
 const navItems = [
   { name: 'home', path: '/' },
@@ -21,6 +22,7 @@ export default function Header() {
   const [elevated, setElevated] = useState(false);
   const location = useLocation();
   const { data: site } = useFetch('/api/site');
+  const phoneNum = site?.contactPhone || phone;
   const { lang, setLang, t } = useI18n();
 
   useEffect(() => {
@@ -45,15 +47,16 @@ export default function Header() {
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 md:py-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          {site?.logoUrl ? (
-            <img src={getImageUrl(site.logoUrl)} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
-          ) : site?.defaultLogoUrl ? (
-            <img src={getImageUrl(site.defaultLogoUrl)} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-gedo-green flex items-center justify-center mr-3 shadow-card">
-              <span className="text-white font-bold text-xl">G</span>
-            </div>
-          )}
+          <img
+            src={site?.logoUrl ? getImageUrl(site.logoUrl) : logoLocal}
+            alt="logo"
+            className="w-14 h-14 rounded-full object-cover mr-3 shadow-card"
+            width="56"
+            height="56"
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+          />
           <div>
             <h1 className="font-playfair text-gedo-green text-2xl font-bold">Gedo</h1>
             <p className="text-xs text-gedo-brown -mt-1">
@@ -87,10 +90,10 @@ export default function Header() {
         {/* Right actions */}
         <div className="flex items-center space-x-4">
           <a
-            href={`tel:${phone}`}
+            href={`tel:${phoneNum}`}
             className="hidden md:block px-4 py-2 border-2 border-gedo-green text-gedo-green rounded-full hover:bg-gedo-green hover:text-white transition duration-300"
           >
-            Call {phone}
+            Call {phoneNum}
           </a>
           <button
             className="md:hidden text-gedo-green text-xl"
@@ -116,11 +119,11 @@ export default function Header() {
               </Link>
             ))}
             <a
-              href={`tel:${phone}`}
+              href={`tel:${phoneNum}`}
               className="px-4 py-2 border-2 border-gedo-green text-gedo-green rounded-full hover:bg-gedo-green hover:text-white transition duration-300 w-max"
               onClick={() => setMobileOpen(false)}
             >
-              Call {phone}
+              Call {phoneNum}
             </a>
           </div>
         </div>

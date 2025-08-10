@@ -9,6 +9,7 @@ export default function DishForm({ initial = {}, onSave, onCancel }) {
     image: initial.image || '',
     badgeIcon: initial.badge?.icon || '',
     badgeText: initial.badge?.text || '',
+    categoryId: initial.categoryId || '',
   });
 
   function handleChange(e) {
@@ -22,6 +23,7 @@ export default function DishForm({ initial = {}, onSave, onCancel }) {
       price: Number(form.price),
       description: form.description,
       image: form.image,
+      categoryId: form.categoryId || null,
       badge: form.badgeIcon || form.badgeText ? { icon: form.badgeIcon, text: form.badgeText } : undefined,
     };
     onSave(payload);
@@ -42,8 +44,8 @@ export default function DishForm({ initial = {}, onSave, onCancel }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
-      // If dev server proxies /media to backend, we can use relative URL as-is
-      setForm((p) => ({ ...p, image: data.url }));
+      // Prefer the relative path to be robust across environments
+      setForm((p) => ({ ...p, image: data.path || data.url }));
     } catch (err) {
       alert(err.message);
     }
@@ -82,6 +84,11 @@ export default function DishForm({ initial = {}, onSave, onCancel }) {
           )}
           <input id="imageFile" name="imageFile" type="file" accept="image/*" onChange={handleImageChange} className="w-full" />
         </div>
+        {/* Category */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1" htmlFor="categoryId">Category</label>
+          <CategorySelect value={form.categoryId} onChange={(v) => setForm((p) => ({ ...p, categoryId: v }))} />
+        </div>
         {/* Badge icon/text */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1" htmlFor="badgeIcon">Badge Icon</label>
@@ -101,6 +108,44 @@ export default function DishForm({ initial = {}, onSave, onCancel }) {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function CategorySelect({ value, onChange }) {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newCat, setNewCat] = useState('');
+  const AUTH = `Basic ${btoa('Gedo:Gedo1999')}`;
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl('/api/categories'));
+      setCategories(await res.json());
+    } catch {}
+    setLoading(false);
+  }
+  async function create() {
+    if (!newCat.trim()) return;
+    const res = await fetch(apiUrl('/api/categories'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: AUTH }, body: JSON.stringify({ name: newCat }) });
+    if (res.ok) {
+      setNewCat('');
+      load();
+    }
+  }
+  useState(() => { load(); }, []);
+
+  return (
+    <div className="flex items-center gap-2">
+      <select className="flex-1 border rounded px-3 py-2" value={value || ''} onChange={(e) => onChange(e.target.value)} disabled={loading}>
+        <option value="">— None —</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+      <input className="border rounded px-2 py-2 w-28" placeholder="New cat" value={newCat} onChange={(e) => setNewCat(e.target.value)} />
+      <button type="button" className="px-3 py-2 bg-gray-200 rounded" onClick={create}>Add</button>
     </div>
   );
 }

@@ -1,7 +1,13 @@
 import { motion } from 'framer-motion';
 import { phone } from '../data';
+import useFetch from '../hooks/useFetch';
+import { useI18n } from '../i18n.jsx';
 
 export default function Reservation() {
+  const { data: site } = useFetch('/api/site');
+  const tel = site?.contactPhone || phone;
+  const wa = (tel || '').replace(/[^\d]/g, '');
+  const { t } = useI18n();
   return (
     <motion.section
       id="reserve"
@@ -15,20 +21,20 @@ export default function Reservation() {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-playfair text-3xl md:text-4xl text-white mb-6">Reserve / Order</h2>
+          <h2 className="font-playfair text-3xl md:text-4xl text-white mb-6">{t('reservation.title')}</h2>
           <p className="text-gedo-cream text-lg mb-8">
             Call us directly and we’ll happily secure your table or prepare your takeaway.
           </p>
 
           <div className="flex items-center justify-center gap-4">
             <a
-              href={`tel:${phone}`}
+              href={`tel:${tel}`}
               className="inline-block px-8 py-3 bg-gedo-gold text-white font-medium rounded-full shadow-md hover:bg-white hover:text-gedo-green transition duration-300"
             >
-              {phone}
+              {tel}
             </a>
             <a
-              href={`https://wa.me/${phone.replace(/[^\d]/g,'')}`}
+              href={`https://wa.me/${wa}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-full shadow-md hover:shadow-lg transition"

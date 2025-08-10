@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
 body {
   font-family: 'Inter', sans-serif;
 }
@@ -56,27 +60,26 @@ body {
 }
 
 .marquee-container {
-  overflow: hidden;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: none;
 }
 
 .marquee-track {
   display: flex;
   gap: 1.5rem;
-  will-change: transform;
-  animation: marquee-x 60s linear infinite; /* default speed ~60s per loop */
 }
 
-.marquee-track.marquee-slower {
-  animation-duration: 80s;
-}
+.marquee-track.marquee-slower {}
+.marquee-track.marquee-faster {}
 
-.marquee-track.marquee-faster {
-  animation-duration: 40s;
-}
 
-.marquee-container:hover .marquee-track {
-  animation-play-state: paused;
-}
+/* Remove hover-pause to avoid fighting the user; we pause via JS events */
+.marquee-container:hover .marquee-track {}
+
+.marquee-paused .marquee-track {}
+
+.marquee-container > * {}
 
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
