@@ -3,6 +3,7 @@ import Header from './components/Header';
 import BackgroundFX from './components/BackgroundFX';
 import ScrollToTop from './components/ScrollToTop';
 import FloatingCTA from './components/FloatingCTA';
+import PromoBanner from './components/PromoBanner';
 import { I18nProvider } from './i18n.jsx';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -18,6 +19,7 @@ export default function App() {
       <I18nProvider>
         <BackgroundFX />
         <Header />
+        <PromoBanner />
         <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/menu" element={<Menu />} />

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-const I18nContext = createContext({ lang: 'ro', setLang: () => {}, t: (k) => k });
+const I18nContext = createContext({ lang: 'en', setLang: () => {}, t: (k) => k });
 
 const translations = {
   en: {
@@ -11,7 +11,7 @@ const translations = {
     reservation: { title: 'Reserve / Order' },
     contact: { title: 'Get in Touch', callUs: 'Call Us', visitUs: 'Visit Us' },
     footer: { about: 'Gedo Restaurant', contactUs: 'Contact Us', opening: 'Opening Hours', findUs: 'Find Us', directions: 'Get Directions' },
-    misc: { todaysSpecial: "Today's Special", availableUntil: 'Available until 10 PM', readStory: 'Read Our Story', callToOrder: 'Call to Order' },
+    misc: { todaysSpecial: "Today's Special", readStory: 'Read Our Story', callToOrder: 'Call to Order' },
   },
   ro: {
     nav: { home: 'Acasă', menu: 'Meniu', about: 'Despre', contact: 'Contact', gallery: 'Galerie', admin: 'Admin' },
@@ -21,12 +21,12 @@ const translations = {
     reservation: { title: 'Rezervări / Comenzi' },
     contact: { title: 'Contactează-ne', callUs: 'Sună-ne', visitUs: 'Vizitează-ne' },
     footer: { about: 'Restaurant Gedo', contactUs: 'Contact', opening: 'Program', findUs: 'Găsește-ne', directions: 'Indicații' },
-    misc: { todaysSpecial: 'Specialitatea zilei', availableUntil: 'Disponibil până la 22:00', readStory: 'Citește povestea noastră', callToOrder: 'Sună pentru comandă' },
+    misc: { todaysSpecial: 'Specialitatea zilei', readStory: 'Citește povestea noastră', callToOrder: 'Sună pentru comandă' },
   },
 };
 
 export function I18nProvider({ children }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'ro');
+  const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'en');
   useEffect(() => { localStorage.setItem('lang', lang); }, [lang]);
   const t = useMemo(() => {
     const dict = translations[lang] || translations.en;

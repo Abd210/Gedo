@@ -31,11 +31,10 @@ export default function Admin() {
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formState, setFormState] = useState({ show: false, editing: null, type: 'dish' });
-  const [section, setSection] = useState('dishes'); // 'dishes' | 'testimonials' | 'categories' | 'site'
+  const [section, setSection] = useState('dishes'); // 'dishes' | 'testimonials'
   const [gallery, setGallery] = useState([]);
   const [site, setSite] = useState(null);
   const [settingsLang, setSettingsLang] = useState('en');
-  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -43,40 +42,8 @@ export default function Admin() {
       fetchCollection('testimonials');
       fetchSite();
       fetchGallery();
-      fetchCategories();
     }
   }, [user]);
-
-  async function fetchCategories() {
-    try {
-      const res = await fetch(apiUrl('/api/categories'));
-      setCategories(await res.json());
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async function saveCategory(payload, id) {
-    try {
-      const headers = { 'Content-Type': 'application/json', Authorization: BASIC_AUTH };
-      const res = await fetch(apiUrl(id ? `/api/categories/${id}` : '/api/categories'), { method: id ? 'PUT' : 'POST', headers, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error('Failed');
-      await fetchCategories();
-    } catch (e) {
-      alert('Save failed');
-    }
-  }
-
-  async function deleteCategory(id) {
-    if (!window.confirm('Delete category?')) return;
-    try {
-      const res = await fetch(apiUrl(`/api/categories/${id}`), { method: 'DELETE', headers: { Authorization: BASIC_AUTH } });
-      if (!res.ok) throw new Error('Failed');
-      await fetchCategories();
-    } catch (e) {
-      alert('Delete failed');
-    }
-  }
 
   async function fetchCollection(col) {
     try {
@@ -349,38 +316,6 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
-      ) : section === 'categories' ? (
-        <div className="max-w-xl space-y-4">
-          <div className="flex items-center gap-2">
-            <input id="newCatName" placeholder="Category name" className="flex-1 border rounded px-3 py-2" />
-            <input id="newCatOrder" type="number" placeholder="Order" className="w-24 border rounded px-3 py-2" />
-            <button className="px-4 py-2 bg-gedo-green text-white rounded" onClick={() => saveCategory({ name: document.getElementById('newCatName').value, order: Number(document.getElementById('newCatOrder').value) || 0 })}>Add</button>
-          </div>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gedo-green text-white">
-                <th className="p-2">Name</th>
-                <th className="p-2 w-24">Order</th>
-                <th className="p-2 w-40">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((c) => (
-                <tr key={c.id} className="border-b">
-                  <td className="p-2">
-                    <input className="border rounded px-2 py-1 w-full" defaultValue={c.name} onBlur={(e) => saveCategory({ name: e.target.value }, c.id)} />
-                  </td>
-                  <td className="p-2">
-                    <input className="border rounded px-2 py-1 w-full" type="number" defaultValue={c.order || 0} onBlur={(e) => saveCategory({ order: Number(e.target.value) || 0 }, c.id)} />
-                  </td>
-                  <td className="p-2">
-                    <button className="text-gedo-red" onClick={() => deleteCategory(c.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       ) : section === 'site' ? (
         <div className="max-w-4xl space-y-6">
           <div className="flex items-center justify-between sticky top-20 bg-white/95 backdrop-blur z-10 py-2 border-b">

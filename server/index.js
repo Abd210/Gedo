@@ -67,34 +67,16 @@ if (!admin.apps.length) {
     credential: admin.credential.cert(serviceAccount),
     // databaseURL is optional for Firestore-only usage
     projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
-    storageBucket:
-      process.env.FIREBASE_STORAGE_BUCKET || `${serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID}.appspot.com`,
   });
 }
 
 const db = getFirestore();
-// Helper to normalize media URLs (fix old localhost URLs and bare filenames)
-function normalizeMediaUrl(input) {
-  if (!input || typeof input !== 'string') return input;
-  try {
-    if (/^https?:\/\/localhost|^https?:\/\/127\.0\.0\.1/.test(input)) {
-      const u = new URL(input);
-      return `https://gedo-server-294732304552.us-central1.run.app${u.pathname}`;
-    }
-  } catch (_) {}
-  if (input.startsWith('/media/')) return input;
-  if (/^[0-9].*\.(png|jpe?g|webp|gif|svg)$/i.test(input)) return `/media/${input}`;
-  return input;
-}
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-// Ensure uploads directory exists
-// - In Cloud Run, only /tmp is writable. Use it in production. Use local folder in dev.
-const uploadsDir = process.env.NODE_ENV === 'production'
-  ? path.join('/tmp', 'uploads')
-  : path.resolve('server', 'uploads');
+// Ensure uploads directory exists (under server/uploads to avoid Vite dev conflicts)
+const uploadsDir = path.resolve('server', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -159,16 +141,11 @@ async function verifyAuth(req, res, next) {
 
 // CRUD routes for dishes
 const dishesCol = db.collection('dishes');
-const categoriesCol = db.collection('categories');
 
 app.get('/api/dishes', async (req, res) => {
   try {
     const snapshot = await dishesCol.get();
-    const data = snapshot.docs.map((d) => {
-      const doc = { id: d.id, ...d.data() };
-      if (doc.image) doc.image = normalizeMediaUrl(doc.image);
-      return doc;
-    });
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     res.json(data);
   } catch (err) {
     console.error('GET /api/dishes error:', err);
@@ -181,9 +158,7 @@ app.get('/api/dishes/:id', async (req, res) => {
   try {
     const doc = await dishesCol.doc(req.params.id).get();
     if (!doc.exists) return res.status(404).json({ error: 'Not found' });
-    const data = { id: doc.id, ...doc.data() };
-    if (data.image) data.image = normalizeMediaUrl(data.image);
-    res.json(data);
+    res.json({ id: doc.id, ...doc.data() });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -191,9 +166,7 @@ app.get('/api/dishes/:id', async (req, res) => {
 
 app.post('/api/dishes', verifyAuth, async (req, res) => {
   try {
-    const payload = { ...req.body };
-    if (payload.price != null) payload.price = Number(payload.price);
-    const doc = await dishesCol.add(payload);
+    const doc = await dishesCol.add(req.body);
     res.json({ id: doc.id });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -202,9 +175,7 @@ app.post('/api/dishes', verifyAuth, async (req, res) => {
 
 app.put('/api/dishes/:id', verifyAuth, async (req, res) => {
   try {
-    const payload = { ...req.body };
-    if (payload.price != null) payload.price = Number(payload.price);
-    await dishesCol.doc(req.params.id).set(payload, { merge: true });
+    await dishesCol.doc(req.params.id).set(req.body, { merge: true });
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -220,122 +191,31 @@ app.delete('/api/dishes/:id', verifyAuth, async (req, res) => {
   }
 });
 
-// ---- Categories endpoints ----
-app.get('/api/categories', async (_req, res) => {
-  try {
-    const snap = await categoriesCol.orderBy('order', 'asc').get().catch(async () => await categoriesCol.get());
-    const data = snap.docs.map((d) => ({ id: d.id, order: 0, ...d.data() }));
-    res.json(data);
-  } catch (err) {
-    res.json([]);
-  }
-});
-
-app.post('/api/categories', verifyAuth, async (req, res) => {
-  try {
-    const { name, order = 0 } = req.body || {};
-    if (!name) return res.status(400).json({ error: 'Missing name' });
-    const doc = await categoriesCol.add({ name: String(name), order: Number(order) || 0, createdAt: Date.now() });
-    res.json({ id: doc.id });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.put('/api/categories/:id', verifyAuth, async (req, res) => {
-  try {
-    const payload = {};
-    if (req.body?.name != null) payload.name = String(req.body.name);
-    if (req.body?.order != null) payload.order = Number(req.body.order) || 0;
-    await categoriesCol.doc(req.params.id).set(payload, { merge: true });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.delete('/api/categories/:id', verifyAuth, async (req, res) => {
-  try {
-    await categoriesCol.doc(req.params.id).delete();
-    // Optional: clear categoryId from dishes referencing this category
-    const snap = await dishesCol.where('categoryId', '==', req.params.id).get();
-    const batch = db.batch();
-    snap.forEach((doc) => batch.set(dishesCol.doc(doc.id), { categoryId: null }, { merge: true }));
-    await batch.commit();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
 // CRUD routes for testimonials
 const testimonialsCol = db.collection('testimonials');
 const galleryCol = db.collection('gallery');
 
-const isProd = process.env.NODE_ENV === 'production';
-const makeFilename = (originalname = '') => {
-  const ext = path.extname(originalname) || '';
-  return `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-};
-
-// Use memory storage in production (Cloud Run) and disk locally
-const upload = multer(
-  isProd
-    ? { storage: multer.memoryStorage() }
-    : {
-        storage: multer.diskStorage({
-          destination: (_req, _file, cb) => cb(null, uploadsDir),
-          filename: (_req, file, cb) => cb(null, makeFilename(file.originalname)),
-        }),
-      }
-);
+// Disk storage preserving file extensions
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || '';
+    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    cb(null, name);
+  },
+});
+const upload = multer({ storage });
 
 // Image upload endpoint → returns a public URL to use in image fields
-app.post('/api/upload', verifyAuth, upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const filename = req.file.filename || makeFilename(req.file.originalname);
-    const mediaPath = `/media/${filename}`;
-
-    if (isProd) {
-      const bucket = admin.storage().bucket();
-      const file = bucket.file(`uploads/${filename}`);
-      await file.save(req.file.buffer, {
-        contentType: req.file.mimetype || 'application/octet-stream',
-        public: true,
-        resumable: false,
-        metadata: { cacheControl: 'public, max-age=31536000, immutable' },
-      });
-    }
-
-    const baseUrl = isProd
-      ? 'https://gedo-server-294732304552.us-central1.run.app'
-      : `http://localhost:${PORT}`;
-    const absoluteMediaUrl = `${baseUrl}${mediaPath}`;
-    const bucketUrl = isProd
-      ? `https://storage.googleapis.com/${admin.storage().bucket().name}/uploads/${filename}`
-      : absoluteMediaUrl;
-    res.json({ url: bucketUrl, path: mediaPath });
-  } catch (err) {
-    console.error('Upload error', err);
-    res.status(500).json({ error: 'Upload failed' });
-  }
+app.post('/api/upload', verifyAuth, upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  // Use absolute URL for the deployed server
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://gedo-server-294732304552.us-central1.run.app'
+    : `http://localhost:${PORT}`;
+  const url = `${baseUrl}/media/${req.file.filename}`;
+  res.json({ url });
 });
-
-if (isProd) {
-  app.get('/media/:filename', async (req, res) => {
-    try {
-      const bucket = admin.storage().bucket();
-      const f = bucket.file(`uploads/${req.params.filename}`);
-      const [exists] = await f.exists();
-      if (!exists) return res.status(404).end();
-      res.set('Cache-Control', 'public, max-age=31536000, immutable');
-      f.createReadStream().on('error', () => res.status(500).end()).pipe(res);
-    } catch (e) {
-      res.status(500).end();
-    }
-  });
-}
 
 app.get('/api/testimonials', async (req, res) => {
   try {
@@ -382,11 +262,7 @@ app.delete('/api/testimonials/:id', verifyAuth, async (req, res) => {
 app.get('/api/gallery', async (_req, res) => {
   try {
     const snap = await galleryCol.orderBy('createdAt', 'desc').get();
-    const data = snap.docs.map((d) => {
-      const g = { id: d.id, ...d.data() };
-      if (g.url) g.url = normalizeMediaUrl(g.url);
-      return g;
-    });
+    const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     res.json(data);
   } catch (err) {
     console.error('GET /api/gallery error:', err);

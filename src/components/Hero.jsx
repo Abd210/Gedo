@@ -5,8 +5,6 @@ import useFetch from '../hooks/useFetch';
 import ScrollHint from './ScrollHint';
 import { useI18n } from '../i18n.jsx';
 import { getImageUrl } from '../api.js';
-import heroLocal from '../../images/hero_img.webp';
-import logoLocal from '../../images/Gedo_Logo.png';
 
 export default function Hero() {
   const { data: site } = useFetch('/api/site');
@@ -17,7 +15,7 @@ export default function Hero() {
       id="hero"
       className="pt-28 md:pt-36 min-h-[70vh] relative overflow-hidden bg-gedo-green bg-opacity-95 bg-center"
       style={{
-        backgroundImage: `url(${site?.heroBackgroundUrl ? getImageUrl(site.heroBackgroundUrl) : heroLocal})`,
+        backgroundImage: `url(${getImageUrl(site?.heroBackgroundUrl || site?.defaultHeroUrl || '/images/hero_img.webp')})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -38,16 +36,13 @@ export default function Hero() {
               <div className="w-56 h-56 md:w-72 md:h-72 rounded-full border-gedo-gold/30 border-2 spin-slower"></div>
             </div>
             <div className="w-44 h-44 md:w-60 md:h-60 bg-white rounded-full shadow-hover flex items-center justify-center border-8 border-gedo-cream overflow-hidden pulse-glow">
-              <img
-                src={site?.logoUrl ? getImageUrl(site.logoUrl) : logoLocal}
-                alt="logo"
-                className="w-full h-full object-cover"
-                width="240"
-                height="240"
-                loading="eager"
-                decoding="sync"
-                fetchpriority="high"
-              />
+              {site?.logoUrl ? (
+                <img src={getImageUrl(site.logoUrl)} alt="logo" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-36 h-36 md:w-52 md:h-52 bg-gedo-green rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-4xl md:text-6xl">G</span>
+                </div>
+              )}
             </div>
           </div>
           <ScrollHint />
