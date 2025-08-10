@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import useFetch from '../hooks/useFetch';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n.jsx';
+import { apiUrl } from '../api.js';
 
 export default function Testimonials() {
   const { t } = useI18n();
@@ -60,7 +61,7 @@ export default function Testimonials() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const res = await fetch('/api/public/testimonials', {
+                  const res = await fetch(apiUrl('/api/public/testimonials'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(form),

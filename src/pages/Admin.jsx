@@ -20,10 +20,12 @@ function Collapsible({ title, description, defaultOpen = true, children }) {
 }
 import DishForm from '../components/DishForm';
 import TestimonialForm from '../components/TestimonialForm';
+import { getImageUrl, apiUrl } from '../api.js';
 
 export default function Admin() {
-  // Start with default; after login we keep a Basic token in memory
-  const [basicToken, setBasicToken] = useState(`Basic ${btoa(`Gedo:Gedo1999`)}`);
+  const ADMIN_USER = 'Gedo';
+  const ADMIN_PASS = 'Gedo1999';
+  const BASIC_AUTH = `Basic ${btoa(`${ADMIN_USER}:${ADMIN_PASS}`)}`;
   const [user, setUser] = useState(null);
   const [dishes, setDishes] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
@@ -47,11 +49,11 @@ export default function Admin() {
     try {
       let res;
       if (col === 'testimonials') {
-         res = await fetch('/api/admin/testimonials', {
-           headers: { Authorization: basicToken },
+        res = await fetch(apiUrl('/api/admin/testimonials'), {
+          headers: { Authorization: BASIC_AUTH },
         });
       } else {
-        res = await fetch(`/api/${col}`);
+        res = await fetch(apiUrl(`/api/${col}`));
       }
       const data = await res.json();
       if (col === 'dishes') setDishes(data);
@@ -66,9 +68,9 @@ export default function Admin() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: basicToken,
+        Authorization: BASIC_AUTH,
       };
-      const res = await fetch(id ? `/api/${col}/${id}` : `/api/${col}`, {
+      const res = await fetch(apiUrl(id ? `/api/${col}/${id}` : `/api/${col}`), {
         method: id ? 'PUT' : 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -89,7 +91,7 @@ export default function Admin() {
 
   async function fetchSite() {
     try {
-      const res = await fetch('/api/site');
+      const res = await fetch(apiUrl('/api/site'));
       const data = await res.json();
       setSite(data);
     } catch (e) {
@@ -99,7 +101,7 @@ export default function Admin() {
 
   async function fetchGallery() {
     try {
-      const res = await fetch('/api/gallery');
+      const res = await fetch(apiUrl('/api/gallery'));
       setGallery(await res.json());
     } catch (e) {
       console.error(e);
@@ -110,9 +112,9 @@ export default function Admin() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: basicToken,
+        Authorization: BASIC_AUTH,
       };
-      const res = await fetch('/api/site', { method: 'PUT', headers, body: JSON.stringify(partial) });
+      const res = await fetch(apiUrl('/api/site'), { method: 'PUT', headers, body: JSON.stringify(partial) });
       if (!res.ok) throw new Error('Failed to save');
       setSite((p) => ({ ...(p || {}), ...partial }));
     } catch (e) {
@@ -120,23 +122,17 @@ export default function Admin() {
     }
   }
 
-  function getSavableSite(input) {
-    const { defaultLogoUrl, defaultHeroUrl, ...rest } = input || {};
-    return rest;
-  }
-
   async function saveSiteAll() {
     try {
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: basicToken,
+        Authorization: BASIC_AUTH,
       };
-      const res = await fetch('/api/site', { method: 'PUT', headers, body: JSON.stringify(getSavableSite(site || {})) });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Failed to save');
+      const res = await fetch(apiUrl('/api/site'), { method: 'PUT', headers, body: JSON.stringify(site || {}) });
+      if (!res.ok) throw new Error('Failed to save');
       alert('Site settings saved');
     } catch (e) {
-      alert(`Save failed: ${e.message}`);
+      alert('Save failed');
     }
   }
 
@@ -146,9 +142,9 @@ export default function Admin() {
 
   async function uploadSiteImage(file, key) {
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
-        headers: { Authorization: basicToken },
+        headers: { Authorization: BASIC_AUTH },
         body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })(),
       });
       const data = await res.json();
@@ -163,10 +159,10 @@ export default function Admin() {
   async function handleDelete(col, id) {
     if (!window.confirm('Delete?')) return;
     try {
-      await fetch(`/api/${col}/${id}`, {
+      await fetch(apiUrl(`/api/${col}/${id}`), {
         method: 'DELETE',
         headers: {
-           Authorization: basicToken,
+          Authorization: BASIC_AUTH,
         },
       });
       if (col === 'dishes') setDishes((p) => p.filter((d) => d.id !== id));
@@ -181,20 +177,12 @@ export default function Admin() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center">
         <form
           className="space-y-4 w-full max-w-sm"
-            onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
-             const username = e.currentTarget.username.value;
-             const password = e.currentTarget.password.value;
-             // Build basic token and try a protected endpoint to validate
-             const token = `Basic ${btoa(`${username}:${password}`)}`;
-             try {
-               const ping = await fetch('/api/admin/testimonials', { headers: { Authorization: token } });
-               if (!ping.ok) throw new Error('Invalid credentials');
-               setBasicToken(token);
-               setUser({ username });
-             } catch (_) {
-               alert('Invalid credentials');
-             }
+            const username = e.currentTarget.username.value;
+            const password = e.currentTarget.password.value;
+            if (username === ADMIN_USER && password === ADMIN_PASS) setUser({ username });
+            else alert('Invalid credentials');
           }}
         >
           <input name="username" placeholder="Username" className="w-full border rounded px-3 py-2" required />
@@ -208,7 +196,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-16 min-h-[60vh]">
+    <div className="container mx-auto px-4 pt-32 pb-16 min-h-[60vh]">
       <div className="flex justify-between items-center mb-8">
         <h1 className="font-playfair text-3xl text-gedo-green">Admin Panel</h1>
         <div className="space-x-4">
@@ -267,7 +255,7 @@ export default function Admin() {
             </tr>
           </thead>
           <tbody>
-            {dishes.map((d) => (
+            {(dishes || []).map((d) => (
               <tr key={d.id} className="border-b">
                 <td className="p-2">{d.name}</td>
                 <td className="p-2">{d.price}</td>
@@ -344,7 +332,7 @@ export default function Admin() {
                   <label className="block text-sm mb-1">Logo</label>
                   {site?.logoUrl ? (
                     <div className="flex items-center gap-3 mb-2">
-                      <img src={site.logoUrl} alt="logo" className="h-12 w-12 object-cover rounded" />
+                      <img src={getImageUrl(site.logoUrl)} alt="logo" className="h-12 w-12 object-cover rounded" />
                       <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => setSite((p) => ({ ...(p || {}), logoUrl: null }))}>Remove</button>
                     </div>
                   ) : null}
@@ -470,34 +458,6 @@ export default function Admin() {
                 </div>
               </Collapsible>
 
-              <Collapsible title="Admin Access" description="Change the username and password used to sign in.">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input className="border rounded px-3 py-2" placeholder="New username" id="adm_u" />
-                  <input className="border rounded px-3 py-2" placeholder="New password" id="adm_p" type="password" />
-                </div>
-                <button
-                  className="mt-3 px-4 py-2 bg-gedo-green text-white rounded"
-                  onClick={async () => {
-                    const u = document.getElementById('adm_u').value.trim();
-                    const p = document.getElementById('adm_p').value.trim();
-                    if (!u || !p) { alert('Enter username and password'); return; }
-                    const res = await fetch('/api/admin/credentials', {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json', Authorization: basicToken },
-                      body: JSON.stringify({ username: u, password: p }),
-                    });
-                    if (res.ok) {
-                      alert('Admin credentials updated. Please sign in again with the new credentials.');
-                      setUser(null);
-                    } else {
-                      alert('Update failed');
-                    }
-                  }}
-                >
-                  Save Admin Credentials
-                </button>
-              </Collapsible>
-
               <Collapsible title="Contact & Hours" description="Phone, address, schedule, social links, Google Map.">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -562,7 +522,7 @@ export default function Admin() {
               <Collapsible title="Hero Background" description="Large cover image behind the hero content.">
                 {site?.heroBackgroundUrl ? (
                   <div className="mb-2">
-                    <img src={site.heroBackgroundUrl} alt="hero" className="h-20 w-full object-cover rounded" />
+                    <img src={getImageUrl(site.heroBackgroundUrl)} alt="hero" className="h-20 w-full object-cover rounded" />
                   </div>
                 ) : null}
                 <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadSiteImage(e.target.files[0], 'heroBackgroundUrl')} />
@@ -585,9 +545,9 @@ export default function Admin() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   try {
-                    const up = await fetch('/api/upload', { method: 'POST', headers: { Authorization: basicToken }, body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })() });
+                    const up = await fetch(apiUrl('/api/upload'), { method: 'POST', headers: { Authorization: BASIC_AUTH }, body: (() => { const fd = new FormData(); fd.append('image', file); return fd; })() });
                     const { url } = await up.json();
-                    const res = await fetch('/api/gallery', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: basicToken }, body: JSON.stringify({ url }) });
+                    const res = await fetch(apiUrl('/api/gallery'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: BASIC_AUTH }, body: JSON.stringify({ url }) });
                     if (!res.ok) throw new Error('Failed');
                     fetchGallery();
                   } catch (err) {
@@ -600,10 +560,10 @@ export default function Admin() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {gallery.map((g) => (
               <div key={g.id} className="relative group">
-                <img src={g.url} alt="gallery" className="w-full h-32 md:h-36 object-cover rounded" />
+                <img src={getImageUrl(g.url)} alt="gallery" className="w-full h-32 md:h-36 object-cover rounded" />
                 <button
                   className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gedo-red px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition"
-                  onClick={async () => { await fetch(`/api/gallery/${g.id}`, { method: 'DELETE', headers: { Authorization: basicToken } }); fetchGallery(); }}
+                  onClick={async () => { await fetch(apiUrl(`/api/gallery/${g.id}`), { method: 'DELETE', headers: { Authorization: BASIC_AUTH } }); fetchGallery(); }}
                 >
                   Delete
                 </button>

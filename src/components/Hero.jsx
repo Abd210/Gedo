@@ -4,8 +4,7 @@ import { Link } from 'react-router-dom';
 import useFetch from '../hooks/useFetch';
 import ScrollHint from './ScrollHint';
 import { useI18n } from '../i18n.jsx';
-import DefaultLogo from '../assets/logo.svg';
-import HeroDefault from '../assets/hero-default.jpg';
+import { getImageUrl } from '../api.js';
 
 export default function Hero() {
   const { data: site } = useFetch('/api/site');
@@ -16,7 +15,7 @@ export default function Hero() {
       id="hero"
       className="pt-28 md:pt-36 min-h-[70vh] relative overflow-hidden bg-gedo-green bg-opacity-95 bg-center"
       style={{
-        backgroundImage: `url(${site?.heroBackgroundUrl || site?.defaultHeroUrl || HeroDefault})`,
+        backgroundImage: `url(${getImageUrl(site?.heroBackgroundUrl || site?.defaultHeroUrl || '/images/hero_img.webp')})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
@@ -38,9 +37,11 @@ export default function Hero() {
             </div>
             <div className="w-44 h-44 md:w-60 md:h-60 bg-white rounded-full shadow-hover flex items-center justify-center border-8 border-gedo-cream overflow-hidden pulse-glow">
               {site?.logoUrl ? (
-                <img src={site.logoUrl} alt="logo" className="w-full h-full object-cover" />
+                <img src={getImageUrl(site.logoUrl)} alt="logo" className="w-full h-full object-cover" />
               ) : (
-                <img src={DefaultLogo} alt="logo" className="w-36 h-36 md:w-52 md:h-52 object-contain" />
+                <div className="w-36 h-36 md:w-52 md:h-52 bg-gedo-green rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-4xl md:text-6xl">G</span>
+                </div>
               )}
             </div>
           </div>

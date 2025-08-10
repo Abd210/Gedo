@@ -81,6 +81,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use('/media', express.static(uploadsDir));
+// Serve static images from the images directory
+app.use('/images', express.static(path.join(process.cwd(), 'images')));
 
 // Simple request logger
 app.use((req, _res, next) => {
@@ -207,7 +209,11 @@ const upload = multer({ storage });
 // Image upload endpoint → returns a public URL to use in image fields
 app.post('/api/upload', verifyAuth, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const url = `/media/${req.file.filename}`;
+  // Use absolute URL for the deployed server
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://gedo-server-294732304552.us-central1.run.app'
+    : `http://localhost:${PORT}`;
+  const url = `${baseUrl}/media/${req.file.filename}`;
   res.json({ url });
 });
 
@@ -350,9 +356,9 @@ const defaultSiteSettings = {
     'Fondat de Chef Mahmoud „Gedo” Ibrahim în 2018, restaurantul nostru aduce în România aromele autentice ale Sudanului și Orientului Mijlociu.',
   logoUrl: null,
   heroBackgroundUrl: null,
-  // Defaults that point to Vite publicDir (served from /)
-  defaultLogoUrl: '/Gedo_Logo.png',
-  defaultHeroUrl: '/hero_img.webp',
+  // Defaults that point to server images directory
+  defaultLogoUrl: '/images/Gedo_Logo.png',
+  defaultHeroUrl: '/images/hero_img.webp',
   signatureDishIds: [],
   contactPhone: '+40 721 234 567',
   contactAddress: 'Str. Ion Maiorescu 18, Obor, Bucharest, Romania',

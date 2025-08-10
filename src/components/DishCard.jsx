@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useI18n } from '../i18n.jsx';
+import { getImageUrl } from '../api.js';
 
 export default function DishCard({ dish = {} }) {
   const { t } = useI18n();
@@ -10,7 +11,7 @@ export default function DishCard({ dish = {} }) {
       whileHover={{ scale: 1.02 }}
     >
       <div className="h-56 md:h-64 overflow-hidden">
-        <img className="w-full h-full object-cover" src={dish.image} alt={dish.name} loading="lazy" />
+        <img className="w-full h-full object-cover" src={getImageUrl(dish.image)} alt={dish.name} loading="lazy" />
       </div>
       <div className="p-5 md:p-6 border-t-4 border-gedo-green">
         <div className="flex justify-between items-center mb-3">

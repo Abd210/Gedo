@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiUrl } from '../api.js';
 
 export default function TestimonialForm({ initial = {}, onSave, onCancel }) {
   const [form, setForm] = useState({
@@ -22,7 +23,7 @@ export default function TestimonialForm({ initial = {}, onSave, onCancel }) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
         headers: { Authorization: `Basic ${btoa('Gedo:Gedo1999')}` },
         body: (() => {

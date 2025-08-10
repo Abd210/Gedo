@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import DefaultLogo from '../assets/logo.svg';
 import useFetch from '../hooks/useFetch';
 import LanguageToggle from './LanguageToggle';
 import { useI18n } from '../i18n.jsx';
 import { motion } from 'framer-motion';
 import { phone } from '../data';
 import { Link, useLocation } from 'react-router-dom';
+import { getImageUrl } from '../api.js';
 
 const navItems = [
   { name: 'home', path: '/' },
@@ -46,11 +46,13 @@ export default function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center">
           {site?.logoUrl ? (
-            <img src={site.logoUrl} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
+            <img src={getImageUrl(site.logoUrl)} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
           ) : site?.defaultLogoUrl ? (
-            <img src={site.defaultLogoUrl} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
+            <img src={getImageUrl(site.defaultLogoUrl)} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
           ) : (
-            <img src={DefaultLogo} alt="logo" className="w-14 h-14 rounded-full object-cover mr-3 shadow-card" />
+            <div className="w-14 h-14 rounded-full bg-gedo-green flex items-center justify-center mr-3 shadow-card">
+              <span className="text-white font-bold text-xl">G</span>
+            </div>
           )}
           <div>
             <h1 className="font-playfair text-gedo-green text-2xl font-bold">Gedo</h1>
