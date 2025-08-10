@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "gedo-b969f",
+    "site": "gedo-restaurant",
     "public": "dist",
     "cleanUrls": true,
     "rewrites": [
